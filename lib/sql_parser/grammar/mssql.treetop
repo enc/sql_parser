@@ -1,0 +1,61 @@
+grammar Mssql
+
+  rule statment
+    ( select ) ';'
+  end
+
+  rule space
+    (' ' / '\n')*
+  end
+
+  rule select
+    'select ' fieldlist space from?
+  end
+
+  rule fieldlist
+    field (space ',' space field)*
+  end
+
+  rule field
+    expression
+  end
+
+  rule expression
+    '('? space (function / operation / literal) space ')'?
+  end
+
+  rule operation
+    literal space operator space expression
+  end
+
+  rule operator
+    '+' / '-' / '*'
+  end
+
+  rule name
+    '['? [a-zA-Z]+ ']'?
+  end
+
+  rule literal
+    [0-9]+ / ("'" [a-zA-Z]* "'") / name / expression
+  end
+
+  rule function
+    '1'
+  end
+
+  rule from
+    'from ' table_expression
+  end
+
+  rule table_expression
+    name ( space join space ( '(' space table_expression space ')' / name ) space 'on' space name space '=' space name )*
+    /
+    name
+  end
+
+  rule join
+    ('left' / 'right' / 'inner' / 'outer')? space 'join'
+  end
+
+end
