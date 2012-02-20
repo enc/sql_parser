@@ -5,11 +5,11 @@ grammar Mssql
   end
 
   rule space
-    (' ' / '\n')*
+    ' '* '\n'? ' '*
   end
 
   rule select
-    'select ' fieldlist space from?
+    ('select' / 'SELECT') space fieldlist (space from)? (space where)? (space group_by)? (space having)?
   end
 
   rule fieldlist
@@ -17,45 +17,94 @@ grammar Mssql
   end
 
   rule field
-    expression
-  end
-
-  rule expression
-    '('? space (function / operation / literal) space ')'?
-  end
-
-  rule operation
-    literal space operator space expression
-  end
-
-  rule operator
-    '+' / '-' / '*'
-  end
-
-  rule name
-    '['? [a-zA-Z]+ ']'?
-  end
-
-  rule literal
-    [0-9]+ / ("'" [a-zA-Z]* "'") / name / expression
-  end
-
-  rule function
-    '1'
+    expression ( space ('as'/'AS') space name)?
   end
 
   rule from
-    'from ' table_expression
+    ('from' / 'FROM') space table_expression
   end
 
   rule table_expression
-    name ( space join space ( '(' space table_expression space ')' / name ) space 'on' space name space '=' space name )*
-    /
-    name
+    full_name ( space join space ( '(' space table_expression space ')' / full_name ) space ('on' / 'ON') space expression space )*
   end
 
+
   rule join
-    ('left' / 'right' / 'inner' / 'outer')? space 'join'
+    ('left' / 'LEFT' / 'right' / 'RIGHT' / 'inner' / 'INNER' / 'outer' / 'OUTER')? space ('join' / 'JOIN')
+  end
+
+  rule where
+    ('where' / 'WHERE') space expression
+  end
+
+  rule group_by
+    ('group by' / 'GROUP BY') space fieldlist
+  end
+
+  rule having
+    ('having' / 'HAVING') space expression
+  end
+
+
+  rule l_exp
+    c_exp space logical_relation space l_exp
+    /
+    c_exp
+  end
+
+  rule c_exp
+    operation space compare_operator space c_exp
+    /
+    operation
+  end
+
+  rule logical_relation
+    "or" / "OR" /
+    "and" / "AND"
+  end
+
+  rule compare_operator
+    '<=' / '>=' / '<>' / '=' / '<' / '>'
+  end
+
+  rule expression
+    l_exp
+  end
+
+  rule operation
+    function space operator space expression
+    /
+    function
+  end
+
+  rule operator
+    '+' / '-' / '*' / '/'
+  end
+
+  rule function
+    full_name '(' space parameterlist space ')'
+    /
+    literal
+  end
+
+  rule parameterlist
+    expression (space ',' space expression)*
+  end
+
+  rule literal
+    [0-9.]+ / ("'" (!"'" .)* "'") / full_name
+    /
+    '(' space expression space ')'
+  end
+
+  rule full_name
+    name ("." name)*
+  end
+
+  rule name
+    ('[' name ']')
+    /
+    [a-zA-Z_]+
   end
 
 end
