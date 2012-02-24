@@ -7,6 +7,17 @@ Treetop.load(File.expand_path(File.join(File.dirname(__FILE__), "sql_parser/gram
 
 module SqlParser
 
+  class Treetop::Runtime::SyntaxNode
+    def to_sql
+      if terminal?
+        text_value
+      else
+        elements.collect do |item|
+          item.to_sql
+        end.join("")
+      end
+    end
+  end
 
   class Parser
     def initialize(name)

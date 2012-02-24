@@ -1,7 +1,7 @@
 grammar Mssql
 
   rule file
-    (statement / comment / space / select)*
+    (statement / comment / space / select)* <RootNode>
   end
 
   rule statement
@@ -160,7 +160,7 @@ grammar Mssql
   end
 
   rule function
-    full_name space? '(' (space? 'DISTINCT')? space? ('*' / parameterlist )? space? ')'
+    full_name space? '(' (space? 'DISTINCT')? space? ('*' / parameterlist )? space? ')' <FunctionNode>
     /
     literal
   end
@@ -195,7 +195,7 @@ grammar Mssql
   end
 
   rule if
-    ('case' space 'when' / 'CASE' space 'WHEN') space expression space ('then' / 'THEN') space expression space (('else' / 'ELSE') space expression space)? ('end' / 'END')
+    start:('case' space 'when' / 'CASE' space 'WHEN') space condition:expression space default:('then' / 'THEN') space t_result:expression space altern:(('else' / 'ELSE') space e_result:expression space)? ende:('end' / 'END') <IfStatement>
     /
     cast
   end
