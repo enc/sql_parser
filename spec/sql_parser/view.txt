@@ -1,0 +1,1405 @@
+create view [dbo].[store_sync_abos_amounts]
+as
+SELECT  top 999999999999999999   store_objects_amounts.requested, store_objects_amounts.delivered, store_objects_amounts.ordered, store_objects_amounts.shipped, 
+                      store_objects_amounts.new, lager_details_view_mit_termin.id AS lager_id, lager_details_view_mit_termin.bestellt, 
+                      lager_details_view_mit_termin.eingefroren, (CASE WHEN (COALESCE ([ordered], 0) + COALESCE ([requested], 0) = 0) AND 
+                      [new] > [bestellt] THEN [bestellt] - [new] ELSE (COALESCE ([bestellt], 0) + COALESCE ([ausgeliefert], 0)) - CASE WHEN COALESCE ([ordered], 0) 
+                      > COALESCE ([requested], 0) THEN [ordered] ELSE COALESCE ([requested], 0) END END) AS amount, CASE WHEN CASE WHEN COALESCE ([new], 0) 
+                      > 0 THEN CASE WHEN COALESCE ([ordered], 0) > COALESCE ([requested], 0) THEN [ordered] ELSE COALESCE ([requested], 0) 
+                      END + [new] ELSE CASE WHEN COALESCE ([ordered], 0) > COALESCE ([requested], 0) THEN [ordered] ELSE COALESCE ([requested], 0) 
+                      END END < COALESCE ([bestellt], 0) + COALESCE ([ausgeliefert], 0) THEN CAST(1 AS bit) ELSE CAST(0 AS bit) END AS neue_positionen, 
+                      CASE WHEN CASE WHEN COALESCE ([new], 0) > 0 THEN CASE WHEN COALESCE ([ordered], 0) > COALESCE ([requested], 0) 
+                      THEN [ordered] ELSE COALESCE ([requested], 0) END + [new] ELSE CASE WHEN COALESCE ([ordered], 0) > COALESCE ([requested], 0) 
+                      THEN [ordered] ELSE COALESCE ([requested], 0) END END > (COALESCE ([bestellt], 0) + COALESCE ([ausgeliefert], 0)) THEN CAST(1 AS bit) 
+                      ELSE CAST(0 AS bit) END AS überflüssige_position, 
+                      lager_details_view_mit_termin.bestellt + lager_details_view_mit_termin.ausgeliefert AS lager_summe
+FROM         lager_details_view_mit_termin LEFT OUTER JOIN
+                      store_objects_amounts ON lager_details_view_mit_termin.id = store_objects_amounts.lager_id
+WHERE     (lager_details_view_mit_termin.termin IS NULL) AND (store_objects_amounts.new > 0) OR
+                      (lager_details_view_mit_termin.termin <= DATEADD(m, 6, GETDATE())) OR
+                      (lager_details_view_mit_termin.termin IS NULL) OR
+                      (lager_details_view_mit_termin.termin <= DATEADD(m, 6, GETDATE())) OR
+                      ((CASE WHEN COALESCE ([new] , 0) > 0 THEN CASE WHEN COALESCE ([ordered] , 0) > COALESCE ([requested] , 0) THEN [ordered] ELSE COALESCE ([requested] ,0) END + [new] ELSE CASE WHEN COALESCE ([ordered] , 0) > COALESCE ([requested] , 0) THEN [ordered] ELSE COALESCE ([requested] , 0) END END) > (COALESCE ([bestellt] , 0) + COALESCE ([ausgeliefert] , 0))) OR
+                      (CASE WHEN COALESCE ([new] , 0) > 0 THEN CASE WHEN COALESCE ([ordered] , 0) > COALESCE ([requested] , 0) 
+                      THEN [ordered] ELSE COALESCE ([requested] , 0) END + [new] ELSE CASE WHEN COALESCE ([ordered] , 0) > COALESCE ([requested] , 0) 
+                      THEN [ordered] ELSE COALESCE ([requested] , 0) END END < COALESCE ([bestellt] , 0) + COALESCE ([ausgeliefert] , 0))
+GROUP BY store_objects_amounts.requested, store_objects_amounts.delivered, store_objects_amounts.ordered, store_objects_amounts.shipped, 
+                      store_objects_amounts.new, lager_details_view_mit_termin.id, lager_details_view_mit_termin.bestellt, lager_details_view_mit_termin.eingefroren, 
+                      lager_details_view_mit_termin.bestellt + lager_details_view_mit_termin.ausgeliefert, (CASE WHEN (COALESCE ([ordered], 0) + COALESCE ([requested], 
+                      0) = 0) AND [new] > [bestellt] THEN [bestellt] - [new] ELSE (COALESCE ([bestellt], 0) + COALESCE ([ausgeliefert], 0)) - CASE WHEN COALESCE ([ordered], 
+                      0) > COALESCE ([requested], 0) THEN [ordered] ELSE COALESCE ([requested], 0) END END), CASE WHEN CASE WHEN COALESCE ([new], 0) 
+                      > 0 THEN CASE WHEN COALESCE ([ordered], 0) > COALESCE ([requested], 0) THEN [ordered] ELSE COALESCE ([requested], 0) 
+                      END + [new] ELSE CASE WHEN COALESCE ([ordered], 0) > COALESCE ([requested], 0) THEN [ordered] ELSE COALESCE ([requested], 0) 
+                      END END < COALESCE ([bestellt], 0) + COALESCE ([ausgeliefert], 0) THEN CAST(1 AS bit) ELSE CAST(0 AS bit) END, 
+                      CASE WHEN CASE WHEN COALESCE ([new], 0) > 0 THEN CASE WHEN COALESCE ([ordered], 0) > COALESCE ([requested], 0) 
+                      THEN [ordered] ELSE COALESCE ([requested], 0) END + [new] ELSE CASE WHEN COALESCE ([ordered], 0) > COALESCE ([requested], 0) 
+                      THEN [ordered] ELSE COALESCE ([requested], 0) END END > (COALESCE ([bestellt], 0) + COALESCE ([ausgeliefert], 0)) THEN CAST(1 AS bit) 
+                      ELSE CAST(0 AS bit) END
+HAVING      (store_objects_amounts.new > 0)
+ORDER BY amount DESC
+GO
+/****** Object:  View [dbo].[xb_aboverwaltung_auslieferung_liste]    Script Date: 02/23/2012 10:49:28 ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+CREATE VIEW [dbo].[xb_aboverwaltung_auslieferung_liste]
+AS
+SELECT     TOP (2147483647) dbo.adressen_shipment.adr_ID, CONVERT(int, dbo.abotiteln.id) AS abotitel_id, dbo.bst.b_det_ID AS Bestellnummer, 
+                      dbo.abos.bks_id, dbo.adressen_shipment.company AS Firma, dbo.adressen_shipment.client AS Person, dbo.adressen_shipment.address AS Strasse, 
+                      dbo.adressen_shipment.city AS Ort, dbo.adressen_shipment.country AS Land, dbo.abos.bezeichnung, dbo.fnTranslit(dbo.abos.bezeichnung, 'en') 
+                      AS translit, dbo.abotiteln.ausgabe AS Ausgaben_nr, '' AS Versendet, 90990 AS VKZ, dbo.abotiteln.ausgabe, dbo.abotiteln.menge
+FROM         dbo.abos_priorities RIGHT OUTER JOIN
+                      dbo.det INNER JOIN
+                      dbo.bst ON dbo.det.det_ID = dbo.bst.b_det_ID INNER JOIN
+                      dbo.abos INNER JOIN
+                      dbo.abotiteln ON dbo.abos.id = dbo.abotiteln.abos_id ON dbo.bst.B_ID = dbo.abos.bst_id ON dbo.abos_priorities.abos_id = dbo.abos.id INNER JOIN
+                      dbo.adressen_shipment ON dbo.det.det_ID = dbo.adressen_shipment.det_ID
+WHERE     (dbo.abotiteln.status_id = 154) AND (dbo.abotiteln.geändert_am BETWEEN DATEADD(hh, - 48, GETDATE()) AND DATEADD(hh, 8, GETDATE()))
+GROUP BY dbo.adressen_shipment.adr_ID, dbo.bst.b_det_ID, dbo.abos.bks_id, dbo.adressen_shipment.company, dbo.adressen_shipment.client, 
+                      dbo.adressen_shipment.address, dbo.adressen_shipment.city, dbo.adressen_shipment.country, dbo.abos.bezeichnung, dbo.abos.bezeichnung, 
+                      dbo.abotiteln.ausgabe, dbo.abotiteln.ausgabe, dbo.abotiteln.menge, dbo.abos.erstellt_am, CONVERT(int, dbo.abotiteln.id)
+ORDER BY dbo.abos.bezeichnung, Ausgaben_nr, dbo.abos.erstellt_am
+GO
+EXEC sys.sp_addextendedproperty @name=N'MS_DiagramPane1', @value=N'[0E232FF0-B466-11cf-A24F-00AA00A3EFFF, 1.00]
+Begin DesignProperties = 
+   Begin PaneConfigurations = 
+      Begin PaneConfiguration = 0
+         NumPanes = 4
+         Configuration = "(H (1[40] 4[20] 2[20] 3) )"
+      End
+      Begin PaneConfiguration = 1
+         NumPanes = 3
+         Configuration = "(H (1 [50] 4 [25] 3))"
+      End
+      Begin PaneConfiguration = 2
+         NumPanes = 3
+         Configuration = "(H (1 [50] 2 [25] 3))"
+      End
+      Begin PaneConfiguration = 3
+         NumPanes = 3
+         Configuration = "(H (4 [30] 2 [40] 3))"
+      End
+      Begin PaneConfiguration = 4
+         NumPanes = 2
+         Configuration = "(H (1 [56] 3))"
+      End
+      Begin PaneConfiguration = 5
+         NumPanes = 2
+         Configuration = "(H (2 [66] 3))"
+      End
+      Begin PaneConfiguration = 6
+         NumPanes = 2
+         Configuration = "(H (4 [50] 3))"
+      End
+      Begin PaneConfiguration = 7
+         NumPanes = 1
+         Configuration = "(V (3))"
+      End
+      Begin PaneConfiguration = 8
+         NumPanes = 3
+         Configuration = "(H (1[56] 4[18] 2) )"
+      End
+      Begin PaneConfiguration = 9
+         NumPanes = 2
+         Configuration = "(H (1 [75] 4))"
+      End
+      Begin PaneConfiguration = 10
+         NumPanes = 2
+         Configuration = "(H (1[66] 2) )"
+      End
+      Begin PaneConfiguration = 11
+         NumPanes = 2
+         Configuration = "(H (4 [60] 2))"
+      End
+      Begin PaneConfiguration = 12
+         NumPanes = 1
+         Configuration = "(H (1) )"
+      End
+      Begin PaneConfiguration = 13
+         NumPanes = 1
+         Configuration = "(V (4))"
+      End
+      Begin PaneConfiguration = 14
+         NumPanes = 1
+         Configuration = "(V (2))"
+      End
+      ActivePaneConfig = 0
+   End
+   Begin DiagramPane = 
+      Begin Origin = 
+         Top = 0
+         Left = 0
+      End
+      Begin Tables = 
+         Begin Table = "abos_priorities"
+            Begin Extent = 
+               Top = 6
+               Left = 38
+               Bottom = 114
+               Right = 212
+            End
+            DisplayFlags = 280
+            TopColumn = 0
+         End
+         Begin Table = "det"
+            Begin Extent = 
+               Top = 6
+               Left = 250
+               Bottom = 114
+               Right = 431
+            End
+            DisplayFlags = 280
+            TopColumn = 0
+         End
+         Begin Table = "bst"
+            Begin Extent = 
+               Top = 114
+               Left = 38
+               Bottom = 222
+               Right = 219
+            End
+            DisplayFlags = 280
+            TopColumn = 0
+         End
+         Begin Table = "abos"
+            Begin Extent = 
+               Top = 114
+               Left = 257
+               Bottom = 222
+               Right = 438
+            End
+            DisplayFlags = 280
+            TopColumn = 0
+         End
+         Begin Table = "abotiteln"
+            Begin Extent = 
+               Top = 222
+               Left = 38
+               Bottom = 330
+               Right = 207
+            End
+            DisplayFlags = 280
+            TopColumn = 0
+         End
+         Begin Table = "adressen_shipment"
+            Begin Extent = 
+               Top = 222
+               Left = 245
+               Bottom = 330
+               Right = 414
+            End
+            DisplayFlags = 280
+            TopColumn = 0
+         End
+      End
+   End
+   Begin SQLPane = 
+   End
+   Begin DataPane = 
+      Begin ParameterDefaults = ""
+      End
+      Begin ColumnWidths = 18
+         Width = 284
+         Width = 1500
+         Width = 15' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'VIEW',@level1name=N'xb_aboverwaltung_auslieferung_liste'
+GO
+EXEC sys.sp_addextendedproperty @name=N'MS_DiagramPane2', @value=N'00
+         Width = 1500
+         Width = 1500
+         Width = 1500
+         Width = 1500
+         Width = 1500
+         Width = 1500
+         Width = 1500
+         Width = 1500
+         Width = 1500
+         Width = 1500
+         Width = 1500
+         Width = 1500
+         Width = 1500
+         Width = 1500
+         Width = 1500
+      End
+   End
+   Begin CriteriaPane = 
+      Begin ColumnWidths = 12
+         Column = 2520
+         Alias = 1260
+         Table = 1620
+         Output = 720
+         Append = 1400
+         NewValue = 1170
+         SortType = 1350
+         SortOrder = 1410
+         GroupBy = 1350
+         Filter = 4470
+         Or = 1350
+         Or = 1350
+         Or = 1350
+      End
+   End
+End
+' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'VIEW',@level1name=N'xb_aboverwaltung_auslieferung_liste'
+GO
+EXEC sys.sp_addextendedproperty @name=N'MS_DiagramPaneCount', @value=2 , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'VIEW',@level1name=N'xb_aboverwaltung_auslieferung_liste'
+GO
+/****** Object:  View [dbo].[xb_aboverwaltung_auslieferung_alle]    Script Date: 02/23/2012 10:49:28 ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+CREATE VIEW [dbo].[xb_aboverwaltung_auslieferung_alle]
+AS
+SELECT     TOP (2147483647) dbo.abotiteln.id AS abotitel_id, dbo.abos.id AS abo_id, dbo.abos.bks_id, dbo.abos.bezeichnung, dbo.abotiteln.ausgabe, 
+                      dbo.abotiteln.status_id, dbo.abos_priorities.pay_priority, dbo.abos_priorities.damage_priority, CONVERT(datetime, 
+                      COALESCE (dbo.abos_priorities.bezahlt_am, GETDATE() + 100)) AS payment_date, dbo.abos.erstellt_am, dbo.abotiteln.menge, dbo.abos.adr_id
+FROM         dbo.abos_laufende_und_reservierte INNER JOIN
+                      dbo.abos INNER JOIN
+                      dbo.abotiteln ON dbo.abos.id = dbo.abotiteln.abos_id LEFT OUTER JOIN
+                      dbo.abos_priorities ON dbo.abos.id = dbo.abos_priorities.abos_id ON dbo.abos_laufende_und_reservierte.id = dbo.abotiteln.id
+WHERE     (dbo.abotiteln.status_id <> 149) OR
+                      (dbo.abotiteln.status_id IS NULL)
+GROUP BY dbo.abos.id, dbo.abotiteln.id, dbo.abos.bks_id, dbo.abos.bezeichnung, dbo.abotiteln.ausgabe, dbo.abotiteln.status_id, 
+                      dbo.abos_priorities.pay_priority, dbo.abos_priorities.damage_priority, CONVERT(datetime, COALESCE (dbo.abos_priorities.bezahlt_am, GETDATE() 
+                      + 100)), dbo.abos.erstellt_am, dbo.abotiteln.menge, dbo.abos.adr_id
+ORDER BY dbo.abos_priorities.pay_priority DESC, dbo.abos_priorities.damage_priority DESC, payment_date, dbo.abos.erstellt_am
+GO
+EXEC sys.sp_addextendedproperty @name=N'MS_DiagramPane1', @value=N'[0E232FF0-B466-11cf-A24F-00AA00A3EFFF, 1.00]
+Begin DesignProperties = 
+   Begin PaneConfigurations = 
+      Begin PaneConfiguration = 0
+         NumPanes = 4
+         Configuration = "(H (1[40] 4[20] 2[20] 3) )"
+      End
+      Begin PaneConfiguration = 1
+         NumPanes = 3
+         Configuration = "(H (1 [50] 4 [25] 3))"
+      End
+      Begin PaneConfiguration = 2
+         NumPanes = 3
+         Configuration = "(H (1 [50] 2 [25] 3))"
+      End
+      Begin PaneConfiguration = 3
+         NumPanes = 3
+         Configuration = "(H (4 [30] 2 [40] 3))"
+      End
+      Begin PaneConfiguration = 4
+         NumPanes = 2
+         Configuration = "(H (1 [56] 3))"
+      End
+      Begin PaneConfiguration = 5
+         NumPanes = 2
+         Configuration = "(H (2 [66] 3))"
+      End
+      Begin PaneConfiguration = 6
+         NumPanes = 2
+         Configuration = "(H (4 [50] 3))"
+      End
+      Begin PaneConfiguration = 7
+         NumPanes = 1
+         Configuration = "(V (3))"
+      End
+      Begin PaneConfiguration = 8
+         NumPanes = 3
+         Configuration = "(H (1[56] 4[18] 2) )"
+      End
+      Begin PaneConfiguration = 9
+         NumPanes = 2
+         Configuration = "(H (1 [75] 4))"
+      End
+      Begin PaneConfiguration = 10
+         NumPanes = 2
+         Configuration = "(H (1[66] 2) )"
+      End
+      Begin PaneConfiguration = 11
+         NumPanes = 2
+         Configuration = "(H (4 [60] 2))"
+      End
+      Begin PaneConfiguration = 12
+         NumPanes = 1
+         Configuration = "(H (1) )"
+      End
+      Begin PaneConfiguration = 13
+         NumPanes = 1
+         Configuration = "(V (4))"
+      End
+      Begin PaneConfiguration = 14
+         NumPanes = 1
+         Configuration = "(V (2))"
+      End
+      ActivePaneConfig = 0
+   End
+   Begin DiagramPane = 
+      Begin Origin = 
+         Top = 0
+         Left = 0
+      End
+      Begin Tables = 
+         Begin Table = "abos_laufende_und_reservierte"
+            Begin Extent = 
+               Top = 6
+               Left = 38
+               Bottom = 114
+               Right = 207
+            End
+            DisplayFlags = 280
+            TopColumn = 0
+         End
+         Begin Table = "abos"
+            Begin Extent = 
+               Top = 6
+               Left = 245
+               Bottom = 114
+               Right = 426
+            End
+            DisplayFlags = 280
+            TopColumn = 0
+         End
+         Begin Table = "abotiteln"
+            Begin Extent = 
+               Top = 114
+               Left = 38
+               Bottom = 222
+               Right = 207
+            End
+            DisplayFlags = 280
+            TopColumn = 0
+         End
+         Begin Table = "abos_priorities"
+            Begin Extent = 
+               Top = 114
+               Left = 245
+               Bottom = 222
+               Right = 419
+            End
+            DisplayFlags = 280
+            TopColumn = 0
+         End
+      End
+   End
+   Begin SQLPane = 
+   End
+   Begin DataPane = 
+      Begin ParameterDefaults = ""
+      End
+   End
+   Begin CriteriaPane = 
+      Begin ColumnWidths = 12
+         Column = 1440
+         Alias = 900
+         Table = 1170
+         Output = 720
+         Append = 1400
+         NewValue = 1170
+         SortType = 1350
+         SortOrder = 1410
+         GroupBy = 1350
+         Filter = 1350
+         Or = 1350
+         Or = 1350
+         Or = 1350
+      End
+   End
+End
+' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'VIEW',@level1name=N'xb_aboverwaltung_auslieferung_alle'
+GO
+EXEC sys.sp_addextendedproperty @name=N'MS_DiagramPaneCount', @value=1 , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'VIEW',@level1name=N'xb_aboverwaltung_auslieferung_alle'
+GO
+/****** Object:  View [dbo].[adressen_abotitel_anzahlen]    Script Date: 02/23/2012 10:49:26 ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+create view [dbo].[adressen_abotitel_anzahlen] as 
+SELECT     adr_id, COUNT(bks_id) AS titelanzahl
+FROM         abos_bezahlte_nach_adr_und_bks
+GROUP BY adr_id
+GO
+/****** Object:  View [dbo].[adressen_bonität_abos]    Script Date: 02/23/2012 10:49:26 ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+CREATE VIEW [dbo].[adressen_bonität_abos]
+AS
+SELECT     TOP (2147483647) dbo.adr.adr_ID, COUNT(dbo.bills_payed.bill_id) AS bezahlt, SUM(CASE WHEN [bills_storniert].[bill_id] IS NOT NULL AND 
+                      [bills_payed_amounts].[eingezahlt] = 0 THEN 1 ELSE 0 END) AS storniert, SUM(CASE WHEN [bills_payed_amounts].[eingezahlt] > 0 AND 
+                      [bills_payed].[bill_id] IS NULL AND [bills_storniert].[bill_id] IS NULL THEN 1 ELSE 0 END) AS teilweise_bezahlt, COUNT(dbo.bls.bill_id) AS rechnungen, 
+                      SUM(CASE WHEN [bills_payed_amounts].[eingezahlt] = 0 AND [bills_payed].[bill_id] IS NULL AND [bills_storniert].[bill_id] IS NULL AND 
+                      [bls].[bill_datum] < (getDate() - 30) THEN 1 ELSE 0 END) AS nichtbezahlt_30, dbo.det_zahlungserinnerungen_anzahl.anzahl AS Zahlungserinnerungen, 
+                      dbo.det_zahlungserinnerungen_anzahl.letzte AS Letzte_Zahllungserinnerung, SUM(CASE WHEN [bills_payed].[bill_id] IS NULL AND 
+                      [bills_storniert].[bill_id] IS NULL AND letztes_einzahlungsdatum IS NULL THEN [bls].[betrag] - [eingezahlt] ELSE 0 END) AS Nichtbezahlt_Summe, 
+                      SUM(dbo.bills_payed_amounts.eingezahlt) AS bezahlt_summ, dbo.adressen_abotitel_anzahlen.titelanzahl
+FROM         dbo.bls LEFT OUTER JOIN
+                      dbo.bills_storniert ON dbo.bls.bill_id = dbo.bills_storniert.bill_id LEFT OUTER JOIN
+                      dbo.bills_payed ON dbo.bls.bill_id = dbo.bills_payed.bill_id INNER JOIN
+                      dbo.adr ON dbo.bls.bill_adr_id = dbo.adr.adr_ID INNER JOIN
+                      dbo.abo_projekte ON dbo.bls.bill_prj_id = dbo.abo_projekte.prj_id LEFT OUTER JOIN
+                      dbo.bills_payed_amounts ON dbo.bls.bill_id = dbo.bills_payed_amounts.bill_id LEFT OUTER JOIN
+                      dbo.adressen_abotitel_anzahlen ON dbo.adr.adr_ID = dbo.adressen_abotitel_anzahlen.adr_id LEFT OUTER JOIN
+                      dbo.det_zahlungserinnerungen_anzahl ON dbo.adr.adr_ID = dbo.det_zahlungserinnerungen_anzahl.det_adr_ID
+WHERE     (dbo.bls.bill_datum >= CONVERT(DATETIME, '2009-01-10 00:00:00', 102)) AND (dbo.bls.Betrag > 0)
+GROUP BY dbo.adr.adr_ID, dbo.det_zahlungserinnerungen_anzahl.anzahl, dbo.det_zahlungserinnerungen_anzahl.letzte, 
+                      dbo.adressen_abotitel_anzahlen.titelanzahl
+ORDER BY SUM(CASE WHEN [bills_payed].[bill_id] IS NULL AND [bills_storniert].[bill_id] IS NULL AND letztes_einzahlungsdatum IS NULL 
+                      THEN [bls].[betrag] - [eingezahlt] ELSE 0 END) DESC
+GO
+EXEC sys.sp_addextendedproperty @name=N'MS_DiagramPane1', @value=N'[0E232FF0-B466-11cf-A24F-00AA00A3EFFF, 1.00]
+Begin DesignProperties = 
+   Begin PaneConfigurations = 
+      Begin PaneConfiguration = 0
+         NumPanes = 4
+         Configuration = "(H (1[52] 4[22] 2[8] 3) )"
+      End
+      Begin PaneConfiguration = 1
+         NumPanes = 3
+         Configuration = "(H (1 [50] 4 [25] 3))"
+      End
+      Begin PaneConfiguration = 2
+         NumPanes = 3
+         Configuration = "(H (1 [50] 2 [25] 3))"
+      End
+      Begin PaneConfiguration = 3
+         NumPanes = 3
+         Configuration = "(H (4 [30] 2 [40] 3))"
+      End
+      Begin PaneConfiguration = 4
+         NumPanes = 2
+         Configuration = "(H (1 [56] 3))"
+      End
+      Begin PaneConfiguration = 5
+         NumPanes = 2
+         Configuration = "(H (2 [66] 3))"
+      End
+      Begin PaneConfiguration = 6
+         NumPanes = 2
+         Configuration = "(H (4 [50] 3))"
+      End
+      Begin PaneConfiguration = 7
+         NumPanes = 1
+         Configuration = "(V (3))"
+      End
+      Begin PaneConfiguration = 8
+         NumPanes = 3
+         Configuration = "(H (1[56] 4[18] 2) )"
+      End
+      Begin PaneConfiguration = 9
+         NumPanes = 2
+         Configuration = "(H (1 [75] 4))"
+      End
+      Begin PaneConfiguration = 10
+         NumPanes = 2
+         Configuration = "(H (1[66] 2) )"
+      End
+      Begin PaneConfiguration = 11
+         NumPanes = 2
+         Configuration = "(H (4 [60] 2))"
+      End
+      Begin PaneConfiguration = 12
+         NumPanes = 1
+         Configuration = "(H (1) )"
+      End
+      Begin PaneConfiguration = 13
+         NumPanes = 1
+         Configuration = "(V (4))"
+      End
+      Begin PaneConfiguration = 14
+         NumPanes = 1
+         Configuration = "(V (2))"
+      End
+      ActivePaneConfig = 0
+   End
+   Begin DiagramPane = 
+      Begin Origin = 
+         Top = 0
+         Left = 0
+      End
+      Begin Tables = 
+         Begin Table = "bls"
+            Begin Extent = 
+               Top = 6
+               Left = 38
+               Bottom = 121
+               Right = 245
+            End
+            DisplayFlags = 280
+            TopColumn = 4
+         End
+         Begin Table = "bills_storniert"
+            Begin Extent = 
+               Top = 6
+               Left = 283
+               Bottom = 91
+               Right = 451
+            End
+            DisplayFlags = 280
+            TopColumn = 0
+         End
+         Begin Table = "bills_payed"
+            Begin Extent = 
+               Top = 126
+               Left = 38
+               Bottom = 211
+               Right = 206
+            End
+            DisplayFlags = 280
+            TopColumn = 0
+         End
+         Begin Table = "adr"
+            Begin Extent = 
+               Top = 216
+               Left = 38
+               Bottom = 331
+               Right = 220
+            End
+            DisplayFlags = 280
+            TopColumn = 0
+         End
+         Begin Table = "abo_projekte"
+            Begin Extent = 
+               Top = 216
+               Left = 258
+               Bottom = 301
+               Right = 426
+            End
+            DisplayFlags = 280
+            TopColumn = 0
+         End
+         Begin Table = "adressen_abotitel_anzahlen"
+            Begin Extent = 
+               Top = 306
+               Left = 258
+               Bottom = 391
+               Right = 522
+            End
+            DisplayFlags = 280
+            TopColumn = 0
+         End
+         Begin Table = "det_zahlungserinnerungen_anzahl"
+            Begin Extent = 
+               Top = 336
+               Left = 38
+               Bottom = 451
+               Right = 206
+' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'VIEW',@level1name=N'adressen_bonität_abos'
+GO
+EXEC sys.sp_addextendedproperty @name=N'MS_DiagramPane2', @value=N'
+            End
+            DisplayFlags = 280
+            TopColumn = 0
+         End
+         Begin Table = "bills_payed_amounts"
+            Begin Extent = 
+               Top = 9
+               Left = 495
+               Bottom = 288
+               Right = 716
+            End
+            DisplayFlags = 280
+            TopColumn = 0
+         End
+      End
+   End
+   Begin SQLPane = 
+   End
+   Begin DataPane = 
+      Begin ParameterDefaults = ""
+      End
+      Begin ColumnWidths = 13
+         Width = 284
+         Width = 1500
+         Width = 1500
+         Width = 1500
+         Width = 1500
+         Width = 1500
+         Width = 1500
+         Width = 1500
+         Width = 1500
+         Width = 1500
+         Width = 1500
+         Width = 1500
+         Width = 1500
+      End
+   End
+   Begin CriteriaPane = 
+      Begin ColumnWidths = 12
+         Column = 16380
+         Alias = 2220
+         Table = 1695
+         Output = 720
+         Append = 1400
+         NewValue = 1170
+         SortType = 1350
+         SortOrder = 1410
+         GroupBy = 1350
+         Filter = 1410
+         Or = 1350
+         Or = 1350
+         Or = 1350
+      End
+   End
+End
+' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'VIEW',@level1name=N'adressen_bonität_abos'
+GO
+EXEC sys.sp_addextendedproperty @name=N'MS_DiagramPaneCount', @value=2 , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'VIEW',@level1name=N'adressen_bonität_abos'
+GO
+/****** Object:  View [dbo].[abos_priorisiert_mit_erstausgabe]    Script Date: 02/23/2012 10:49:26 ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+CREATE VIEW [dbo].[abos_priorisiert_mit_erstausgabe]
+AS
+SELECT     TOP (2147483647) dbo.xb_aboverwaltung_auslieferung_alle.abo_id, dbo.xb_aboverwaltung_auslieferung_alle.adr_id, 
+                      dbo.xb_aboverwaltung_auslieferung_alle.bks_id, dbo.abos_erste_letzte_ausgabe.Erste_Ausgabe, dbo.bst.Praemie AS ab_ausgabe
+FROM         dbo.abos_erste_letzte_ausgabe INNER JOIN
+                      dbo.xb_aboverwaltung_auslieferung_alle ON dbo.abos_erste_letzte_ausgabe.id = dbo.xb_aboverwaltung_auslieferung_alle.abo_id INNER JOIN
+                      dbo.abos ON dbo.abos_erste_letzte_ausgabe.id = dbo.abos.id INNER JOIN
+                      dbo.bst ON dbo.abos.bst_id = dbo.bst.B_ID
+GROUP BY dbo.xb_aboverwaltung_auslieferung_alle.adr_id, dbo.xb_aboverwaltung_auslieferung_alle.abo_id, dbo.xb_aboverwaltung_auslieferung_alle.bks_id, 
+                      dbo.abos_erste_letzte_ausgabe.Erste_Ausgabe, dbo.bst.Praemie, dbo.xb_aboverwaltung_auslieferung_alle.payment_date, 
+                      dbo.xb_aboverwaltung_auslieferung_alle.erstellt_am
+ORDER BY dbo.xb_aboverwaltung_auslieferung_alle.payment_date, dbo.xb_aboverwaltung_auslieferung_alle.erstellt_am
+GO
+EXEC sys.sp_addextendedproperty @name=N'MS_DiagramPane1', @value=N'[0E232FF0-B466-11cf-A24F-00AA00A3EFFF, 1.00]
+Begin DesignProperties = 
+   Begin PaneConfigurations = 
+      Begin PaneConfiguration = 0
+         NumPanes = 4
+         Configuration = "(H (1[40] 4[20] 2[20] 3) )"
+      End
+      Begin PaneConfiguration = 1
+         NumPanes = 3
+         Configuration = "(H (1 [50] 4 [25] 3))"
+      End
+      Begin PaneConfiguration = 2
+         NumPanes = 3
+         Configuration = "(H (1 [50] 2 [25] 3))"
+      End
+      Begin PaneConfiguration = 3
+         NumPanes = 3
+         Configuration = "(H (4 [30] 2 [40] 3))"
+      End
+      Begin PaneConfiguration = 4
+         NumPanes = 2
+         Configuration = "(H (1 [56] 3))"
+      End
+      Begin PaneConfiguration = 5
+         NumPanes = 2
+         Configuration = "(H (2 [66] 3))"
+      End
+      Begin PaneConfiguration = 6
+         NumPanes = 2
+         Configuration = "(H (4 [50] 3))"
+      End
+      Begin PaneConfiguration = 7
+         NumPanes = 1
+         Configuration = "(V (3))"
+      End
+      Begin PaneConfiguration = 8
+         NumPanes = 3
+         Configuration = "(H (1[56] 4[18] 2) )"
+      End
+      Begin PaneConfiguration = 9
+         NumPanes = 2
+         Configuration = "(H (1 [75] 4))"
+      End
+      Begin PaneConfiguration = 10
+         NumPanes = 2
+         Configuration = "(H (1[66] 2) )"
+      End
+      Begin PaneConfiguration = 11
+         NumPanes = 2
+         Configuration = "(H (4 [60] 2))"
+      End
+      Begin PaneConfiguration = 12
+         NumPanes = 1
+         Configuration = "(H (1) )"
+      End
+      Begin PaneConfiguration = 13
+         NumPanes = 1
+         Configuration = "(V (4))"
+      End
+      Begin PaneConfiguration = 14
+         NumPanes = 1
+         Configuration = "(V (2))"
+      End
+      ActivePaneConfig = 0
+   End
+   Begin DiagramPane = 
+      Begin Origin = 
+         Top = 0
+         Left = 0
+      End
+      Begin Tables = 
+         Begin Table = "abos_erste_letzte_ausgabe"
+            Begin Extent = 
+               Top = 6
+               Left = 38
+               Bottom = 114
+               Right = 212
+            End
+            DisplayFlags = 280
+            TopColumn = 0
+         End
+         Begin Table = "abos"
+            Begin Extent = 
+               Top = 114
+               Left = 38
+               Bottom = 222
+               Right = 219
+            End
+            DisplayFlags = 280
+            TopColumn = 0
+         End
+         Begin Table = "bst"
+            Begin Extent = 
+               Top = 114
+               Left = 257
+               Bottom = 222
+               Right = 438
+            End
+            DisplayFlags = 280
+            TopColumn = 0
+         End
+         Begin Table = "xb_aboverwaltung_auslieferung_alle"
+            Begin Extent = 
+               Top = 6
+               Left = 250
+               Bottom = 114
+               Right = 424
+            End
+            DisplayFlags = 280
+            TopColumn = 0
+         End
+      End
+   End
+   Begin SQLPane = 
+   End
+   Begin DataPane = 
+      Begin ParameterDefaults = ""
+      End
+   End
+   Begin CriteriaPane = 
+      Begin ColumnWidths = 12
+         Column = 1440
+         Alias = 900
+         Table = 1170
+         Output = 720
+         Append = 1400
+         NewValue = 1170
+         SortType = 1350
+         SortOrder = 1410
+         GroupBy = 1350
+         Filter = 1350
+         Or = 1350
+         Or = 1350
+         Or = 1350
+      End
+   End
+End
+' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'VIEW',@level1name=N'abos_priorisiert_mit_erstausgabe'
+GO
+EXEC sys.sp_addextendedproperty @name=N'MS_DiagramPaneCount', @value=1 , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'VIEW',@level1name=N'abos_priorisiert_mit_erstausgabe'
+GO
+/****** Object:  View [dbo].[xb_aboverwaltung_auslieferung_liste_rest]    Script Date: 02/23/2012 10:49:28 ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+CREATE VIEW [dbo].[xb_aboverwaltung_auslieferung_liste_rest]
+AS
+SELECT     adr_ID, abotitel_id, Bestellnummer, bks_id, Firma, Person, Strasse, Ort, Land, bezeichnung, translit, Ausgaben_nr, Versendet, VKZ, ausgabe, menge
+FROM         dbo.xb_aboverwaltung_auslieferung_liste
+WHERE     (menge <= 1) AND (Land IS NULL OR
+                      Land = '' OR
+                      Land = 'deutschland' OR
+                      Land = 'germany')
+GO
+EXEC sys.sp_addextendedproperty @name=N'MS_DiagramPane1', @value=N'[0E232FF0-B466-11cf-A24F-00AA00A3EFFF, 1.00]
+Begin DesignProperties = 
+   Begin PaneConfigurations = 
+      Begin PaneConfiguration = 0
+         NumPanes = 4
+         Configuration = "(H (1[40] 4[20] 2[20] 3) )"
+      End
+      Begin PaneConfiguration = 1
+         NumPanes = 3
+         Configuration = "(H (1 [50] 4 [25] 3))"
+      End
+      Begin PaneConfiguration = 2
+         NumPanes = 3
+         Configuration = "(H (1 [50] 2 [25] 3))"
+      End
+      Begin PaneConfiguration = 3
+         NumPanes = 3
+         Configuration = "(H (4 [30] 2 [40] 3))"
+      End
+      Begin PaneConfiguration = 4
+         NumPanes = 2
+         Configuration = "(H (1 [56] 3))"
+      End
+      Begin PaneConfiguration = 5
+         NumPanes = 2
+         Configuration = "(H (2 [66] 3))"
+      End
+      Begin PaneConfiguration = 6
+         NumPanes = 2
+         Configuration = "(H (4 [50] 3))"
+      End
+      Begin PaneConfiguration = 7
+         NumPanes = 1
+         Configuration = "(V (3))"
+      End
+      Begin PaneConfiguration = 8
+         NumPanes = 3
+         Configuration = "(H (1[56] 4[18] 2) )"
+      End
+      Begin PaneConfiguration = 9
+         NumPanes = 2
+         Configuration = "(H (1 [75] 4))"
+      End
+      Begin PaneConfiguration = 10
+         NumPanes = 2
+         Configuration = "(H (1[66] 2) )"
+      End
+      Begin PaneConfiguration = 11
+         NumPanes = 2
+         Configuration = "(H (4 [60] 2))"
+      End
+      Begin PaneConfiguration = 12
+         NumPanes = 1
+         Configuration = "(H (1) )"
+      End
+      Begin PaneConfiguration = 13
+         NumPanes = 1
+         Configuration = "(V (4))"
+      End
+      Begin PaneConfiguration = 14
+         NumPanes = 1
+         Configuration = "(V (2))"
+      End
+      ActivePaneConfig = 0
+   End
+   Begin DiagramPane = 
+      Begin Origin = 
+         Top = 0
+         Left = 0
+      End
+      Begin Tables = 
+         Begin Table = "xb_aboverwaltung_auslieferung_liste"
+            Begin Extent = 
+               Top = 6
+               Left = 38
+               Bottom = 248
+               Right = 410
+            End
+            DisplayFlags = 280
+            TopColumn = 4
+         End
+      End
+   End
+   Begin SQLPane = 
+   End
+   Begin DataPane = 
+      Begin ParameterDefaults = ""
+      End
+   End
+   Begin CriteriaPane = 
+      Begin ColumnWidths = 11
+         Column = 1440
+         Alias = 900
+         Table = 1170
+         Output = 720
+         Append = 1400
+         NewValue = 1170
+         SortType = 1350
+         SortOrder = 1410
+         GroupBy = 1350
+         Filter = 1350
+         Or = 1350
+         Or = 1350
+         Or = 1350
+      End
+   End
+End
+' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'VIEW',@level1name=N'xb_aboverwaltung_auslieferung_liste_rest'
+GO
+EXEC sys.sp_addextendedproperty @name=N'MS_DiagramPaneCount', @value=1 , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'VIEW',@level1name=N'xb_aboverwaltung_auslieferung_liste_rest'
+GO
+/****** Object:  View [dbo].[xb_aboverwaltung_auslieferung_liste_mengen]    Script Date: 02/23/2012 10:49:28 ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+CREATE VIEW [dbo].[xb_aboverwaltung_auslieferung_liste_mengen]
+AS
+SELECT     adr_ID, abotitel_id, Bestellnummer, bks_id, Firma, Person, Strasse, Ort, Land, bezeichnung, translit, Ausgaben_nr, Versendet, VKZ, ausgabe, 
+                      menge
+FROM         dbo.xb_aboverwaltung_auslieferung_liste
+WHERE     (menge > 1)
+GO
+EXEC sys.sp_addextendedproperty @name=N'MS_DiagramPane1', @value=N'[0E232FF0-B466-11cf-A24F-00AA00A3EFFF, 1.00]
+Begin DesignProperties = 
+   Begin PaneConfigurations = 
+      Begin PaneConfiguration = 0
+         NumPanes = 4
+         Configuration = "(H (1[40] 4[20] 2[20] 3) )"
+      End
+      Begin PaneConfiguration = 1
+         NumPanes = 3
+         Configuration = "(H (1 [50] 4 [25] 3))"
+      End
+      Begin PaneConfiguration = 2
+         NumPanes = 3
+         Configuration = "(H (1 [50] 2 [25] 3))"
+      End
+      Begin PaneConfiguration = 3
+         NumPanes = 3
+         Configuration = "(H (4 [30] 2 [40] 3))"
+      End
+      Begin PaneConfiguration = 4
+         NumPanes = 2
+         Configuration = "(H (1 [56] 3))"
+      End
+      Begin PaneConfiguration = 5
+         NumPanes = 2
+         Configuration = "(H (2 [66] 3))"
+      End
+      Begin PaneConfiguration = 6
+         NumPanes = 2
+         Configuration = "(H (4 [50] 3))"
+      End
+      Begin PaneConfiguration = 7
+         NumPanes = 1
+         Configuration = "(V (3))"
+      End
+      Begin PaneConfiguration = 8
+         NumPanes = 3
+         Configuration = "(H (1[56] 4[18] 2) )"
+      End
+      Begin PaneConfiguration = 9
+         NumPanes = 2
+         Configuration = "(H (1 [75] 4))"
+      End
+      Begin PaneConfiguration = 10
+         NumPanes = 2
+         Configuration = "(H (1[66] 2) )"
+      End
+      Begin PaneConfiguration = 11
+         NumPanes = 2
+         Configuration = "(H (4 [60] 2))"
+      End
+      Begin PaneConfiguration = 12
+         NumPanes = 1
+         Configuration = "(H (1) )"
+      End
+      Begin PaneConfiguration = 13
+         NumPanes = 1
+         Configuration = "(V (4))"
+      End
+      Begin PaneConfiguration = 14
+         NumPanes = 1
+         Configuration = "(V (2))"
+      End
+      ActivePaneConfig = 0
+   End
+   Begin DiagramPane = 
+      Begin Origin = 
+         Top = 0
+         Left = 0
+      End
+      Begin Tables = 
+         Begin Table = "xb_aboverwaltung_auslieferung_liste"
+            Begin Extent = 
+               Top = 6
+               Left = 38
+               Bottom = 114
+               Right = 191
+            End
+            DisplayFlags = 280
+            TopColumn = 0
+         End
+      End
+   End
+   Begin SQLPane = 
+   End
+   Begin DataPane = 
+      Begin ParameterDefaults = ""
+      End
+      Begin ColumnWidths = 10
+         Width = 284
+         Width = 1500
+         Width = 1500
+         Width = 1500
+         Width = 1500
+         Width = 1500
+         Width = 1500
+         Width = 1500
+         Width = 1500
+         Width = 1500
+      End
+   End
+   Begin CriteriaPane = 
+      Begin ColumnWidths = 11
+         Column = 1440
+         Alias = 900
+         Table = 1170
+         Output = 720
+         Append = 1400
+         NewValue = 1170
+         SortType = 1350
+         SortOrder = 1410
+         GroupBy = 1350
+         Filter = 1350
+         Or = 1350
+         Or = 1350
+         Or = 1350
+      End
+   End
+End
+' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'VIEW',@level1name=N'xb_aboverwaltung_auslieferung_liste_mengen'
+GO
+EXEC sys.sp_addextendedproperty @name=N'MS_DiagramPaneCount', @value=1 , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'VIEW',@level1name=N'xb_aboverwaltung_auslieferung_liste_mengen'
+GO
+/****** Object:  View [dbo].[xb_aboverwaltung_auslieferung_liste_ausland]    Script Date: 02/23/2012 10:49:28 ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+CREATE VIEW [dbo].[xb_aboverwaltung_auslieferung_liste_ausland]
+AS
+SELECT     adr_ID, abotitel_id, Bestellnummer, bks_id, Firma, Person, Strasse, Ort, Land, bezeichnung, translit, Ausgaben_nr, Versendet, VKZ, ausgabe, 
+                      menge
+FROM         dbo.xb_aboverwaltung_auslieferung_liste
+WHERE     (Land IS NOT NULL) AND (Land <> 'Deutschland') AND (Land <> '') AND (menge <= 1)
+GO
+EXEC sys.sp_addextendedproperty @name=N'MS_DiagramPane1', @value=N'[0E232FF0-B466-11cf-A24F-00AA00A3EFFF, 1.00]
+Begin DesignProperties = 
+   Begin PaneConfigurations = 
+      Begin PaneConfiguration = 0
+         NumPanes = 4
+         Configuration = "(H (1[40] 4[20] 2[20] 3) )"
+      End
+      Begin PaneConfiguration = 1
+         NumPanes = 3
+         Configuration = "(H (1 [50] 4 [25] 3))"
+      End
+      Begin PaneConfiguration = 2
+         NumPanes = 3
+         Configuration = "(H (1 [50] 2 [25] 3))"
+      End
+      Begin PaneConfiguration = 3
+         NumPanes = 3
+         Configuration = "(H (4 [30] 2 [40] 3))"
+      End
+      Begin PaneConfiguration = 4
+         NumPanes = 2
+         Configuration = "(H (1 [56] 3))"
+      End
+      Begin PaneConfiguration = 5
+         NumPanes = 2
+         Configuration = "(H (2 [66] 3))"
+      End
+      Begin PaneConfiguration = 6
+         NumPanes = 2
+         Configuration = "(H (4 [50] 3))"
+      End
+      Begin PaneConfiguration = 7
+         NumPanes = 1
+         Configuration = "(V (3))"
+      End
+      Begin PaneConfiguration = 8
+         NumPanes = 3
+         Configuration = "(H (1[56] 4[18] 2) )"
+      End
+      Begin PaneConfiguration = 9
+         NumPanes = 2
+         Configuration = "(H (1 [75] 4))"
+      End
+      Begin PaneConfiguration = 10
+         NumPanes = 2
+         Configuration = "(H (1[66] 2) )"
+      End
+      Begin PaneConfiguration = 11
+         NumPanes = 2
+         Configuration = "(H (4 [60] 2))"
+      End
+      Begin PaneConfiguration = 12
+         NumPanes = 1
+         Configuration = "(H (1) )"
+      End
+      Begin PaneConfiguration = 13
+         NumPanes = 1
+         Configuration = "(V (4))"
+      End
+      Begin PaneConfiguration = 14
+         NumPanes = 1
+         Configuration = "(V (2))"
+      End
+      ActivePaneConfig = 0
+   End
+   Begin DiagramPane = 
+      Begin Origin = 
+         Top = 0
+         Left = 0
+      End
+      Begin Tables = 
+         Begin Table = "xb_aboverwaltung_auslieferung_liste"
+            Begin Extent = 
+               Top = 6
+               Left = 38
+               Bottom = 114
+               Right = 191
+            End
+            DisplayFlags = 280
+            TopColumn = 0
+         End
+      End
+   End
+   Begin SQLPane = 
+   End
+   Begin DataPane = 
+      Begin ParameterDefaults = ""
+      End
+      Begin ColumnWidths = 17
+         Width = 284
+         Width = 1500
+         Width = 1500
+         Width = 1500
+         Width = 1500
+         Width = 1500
+         Width = 1500
+         Width = 1500
+         Width = 1500
+         Width = 1500
+         Width = 1500
+         Width = 1500
+         Width = 1500
+         Width = 1500
+         Width = 1500
+         Width = 1500
+         Width = 1500
+      End
+   End
+   Begin CriteriaPane = 
+      Begin ColumnWidths = 11
+         Column = 1440
+         Alias = 900
+         Table = 3810
+         Output = 720
+         Append = 1400
+         NewValue = 1170
+         SortType = 1350
+         SortOrder = 1410
+         GroupBy = 1350
+         Filter = 1350
+         Or = 1350
+         Or = 1350
+         Or = 1350
+      End
+   End
+End
+' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'VIEW',@level1name=N'xb_aboverwaltung_auslieferung_liste_ausland'
+GO
+EXEC sys.sp_addextendedproperty @name=N'MS_DiagramPaneCount', @value=1 , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'VIEW',@level1name=N'xb_aboverwaltung_auslieferung_liste_ausland'
+GO
+/****** Object:  View [dbo].[xb_aboverwaltung_auslieferung_objekte]    Script Date: 02/23/2012 10:49:28 ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+CREATE VIEW [dbo].[xb_aboverwaltung_auslieferung_objekte]
+AS
+SELECT     TOP (2147483647) 0 AS ph1, 0 AS ph2, 0 AS ph3, 0 AS ph4, dbo.xb_aboverwaltung_auslieferung_liste.bks_id, dbo.fueller(N'*', 10) AS ph5, 
+                      'OBJEKTWECHSEL' AS Ausdr2, dbo.fueller(N'*', 10) AS ph6, dbo.fueller(N'*', 10) AS ph7, dbo.fueller(N'*', 10) AS ph8, dbo.TRIM(COALESCE (dbo.bks.titel,
+                       N'') + N'' + COALESCE (dbo.bks.subtitel, N'')) AS titel, dbo.fnTranslit(dbo.TRIM(COALESCE (dbo.bks.titel, N'') + N'' + COALESCE (dbo.bks.subtitel, N'')), 
+                      'en') AS titel_translit, dbo.xb_aboverwaltung_auslieferung_liste.Ausgaben_nr, NULL AS ph11, 0 AS ph12, 
+                      dbo.xb_aboverwaltung_auslieferung_liste.ausgabe, SUM(dbo.xb_aboverwaltung_auslieferung_liste.menge) AS Summevonmenge
+FROM         dbo.xb_aboverwaltung_auslieferung_liste INNER JOIN
+                      dbo.bks ON dbo.xb_aboverwaltung_auslieferung_liste.bks_id = dbo.bks.bks_id
+GROUP BY dbo.xb_aboverwaltung_auslieferung_liste.bks_id, dbo.TRIM(COALESCE (dbo.bks.titel, N'') + N'' + COALESCE (dbo.bks.subtitel, N'')), 
+                      dbo.xb_aboverwaltung_auslieferung_liste.Ausgaben_nr, dbo.xb_aboverwaltung_auslieferung_liste.ausgabe
+ORDER BY titel, dbo.xb_aboverwaltung_auslieferung_liste.Ausgaben_nr
+GO
+EXEC sys.sp_addextendedproperty @name=N'MS_DiagramPane1', @value=N'[0E232FF0-B466-11cf-A24F-00AA00A3EFFF, 1.00]
+Begin DesignProperties = 
+   Begin PaneConfigurations = 
+      Begin PaneConfiguration = 0
+         NumPanes = 4
+         Configuration = "(H (1[40] 4[20] 2[20] 3) )"
+      End
+      Begin PaneConfiguration = 1
+         NumPanes = 3
+         Configuration = "(H (1 [50] 4 [25] 3))"
+      End
+      Begin PaneConfiguration = 2
+         NumPanes = 3
+         Configuration = "(H (1 [50] 2 [25] 3))"
+      End
+      Begin PaneConfiguration = 3
+         NumPanes = 3
+         Configuration = "(H (4 [30] 2 [40] 3))"
+      End
+      Begin PaneConfiguration = 4
+         NumPanes = 2
+         Configuration = "(H (1 [56] 3))"
+      End
+      Begin PaneConfiguration = 5
+         NumPanes = 2
+         Configuration = "(H (2 [66] 3))"
+      End
+      Begin PaneConfiguration = 6
+         NumPanes = 2
+         Configuration = "(H (4 [50] 3))"
+      End
+      Begin PaneConfiguration = 7
+         NumPanes = 1
+         Configuration = "(V (3))"
+      End
+      Begin PaneConfiguration = 8
+         NumPanes = 3
+         Configuration = "(H (1[56] 4[18] 2) )"
+      End
+      Begin PaneConfiguration = 9
+         NumPanes = 2
+         Configuration = "(H (1 [75] 4))"
+      End
+      Begin PaneConfiguration = 10
+         NumPanes = 2
+         Configuration = "(H (1[66] 2) )"
+      End
+      Begin PaneConfiguration = 11
+         NumPanes = 2
+         Configuration = "(H (4 [60] 2))"
+      End
+      Begin PaneConfiguration = 12
+         NumPanes = 1
+         Configuration = "(H (1) )"
+      End
+      Begin PaneConfiguration = 13
+         NumPanes = 1
+         Configuration = "(V (4))"
+      End
+      Begin PaneConfiguration = 14
+         NumPanes = 1
+         Configuration = "(V (2))"
+      End
+      ActivePaneConfig = 0
+   End
+   Begin DiagramPane = 
+      Begin Origin = 
+         Top = 0
+         Left = 0
+      End
+      Begin Tables = 
+         Begin Table = "xb_aboverwaltung_auslieferung_liste"
+            Begin Extent = 
+               Top = 6
+               Left = 38
+               Bottom = 287
+               Right = 352
+            End
+            DisplayFlags = 280
+            TopColumn = 1
+         End
+         Begin Table = "bks"
+            Begin Extent = 
+               Top = 105
+               Left = 555
+               Bottom = 213
+               Right = 736
+            End
+            DisplayFlags = 280
+            TopColumn = 0
+         End
+      End
+   End
+   Begin SQLPane = 
+   End
+   Begin DataPane = 
+      Begin ParameterDefaults = ""
+      End
+      Begin ColumnWidths = 18
+         Width = 284
+         Width = 1500
+         Width = 1500
+         Width = 1500
+         Width = 1500
+         Width = 1500
+         Width = 1500
+         Width = 1500
+         Width = 1500
+         Width = 1500
+         Width = 1500
+         Width = 1500
+         Width = 1500
+         Width = 1500
+         Width = 1500
+         Width = 1500
+         Width = 1500
+         Width = 1500
+      End
+   End
+   Begin CriteriaPane = 
+      Begin ColumnWidths = 12
+         Column = 1440
+         Alias = 900
+         Table = 1170
+         Output = 720
+         Append = 1400
+         NewValue = 1170
+         SortType = 1350
+         SortOrder = 1410
+         GroupBy = 1350
+         Filter = 1350
+         Or = 1350
+         Or = 1350
+         Or = 1350
+      End
+   End
+End
+' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'VIEW',@level1name=N'xb_aboverwaltung_auslieferung_objekte'
+GO
+EXEC sys.sp_addextendedproperty @name=N'MS_DiagramPaneCount', @value=1 , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'VIEW',@level1name=N'xb_aboverwaltung_auslieferung_objekte'
+GO
+/****** Object:  View [dbo].[xb_aboverwaltung_auslieferung_liste_rest_rest]    Script Date: 02/23/2012 10:49:28 ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+CREATE VIEW [dbo].[xb_aboverwaltung_auslieferung_liste_rest_rest]
+AS
+SELECT     xb_aboverwaltung_auslieferung_liste_rest.adr_ID, xb_aboverwaltung_auslieferung_liste_rest.abotitel_id, 
+                      xb_aboverwaltung_auslieferung_liste_rest.Bestellnummer, xb_aboverwaltung_auslieferung_liste_rest.bks_id, 
+                      xb_aboverwaltung_auslieferung_liste_rest.Firma, xb_aboverwaltung_auslieferung_liste_rest.Person, 
+                      xb_aboverwaltung_auslieferung_liste_rest.Strasse, xb_aboverwaltung_auslieferung_liste_rest.Ort, xb_aboverwaltung_auslieferung_liste_rest.Land, 
+                      xb_aboverwaltung_auslieferung_liste_rest.bezeichnung, xb_aboverwaltung_auslieferung_liste_rest.translit, 
+                      xb_aboverwaltung_auslieferung_liste_rest.Ausgaben_nr, xb_aboverwaltung_auslieferung_liste_rest.Versendet, 
+                      xb_aboverwaltung_auslieferung_liste_rest.VKZ, xb_aboverwaltung_auslieferung_liste_rest.ausgabe, 
+                      xb_aboverwaltung_auslieferung_liste_rest.menge
+FROM         xb_aboverwaltung_auslieferung_objekte INNER JOIN
+                      xb_aboverwaltung_auslieferung_liste_rest ON xb_aboverwaltung_auslieferung_objekte.bks_id = xb_aboverwaltung_auslieferung_liste_rest.bks_id AND
+                       xb_aboverwaltung_auslieferung_objekte.ausgabe = xb_aboverwaltung_auslieferung_liste_rest.ausgabe
+WHERE     (xb_aboverwaltung_auslieferung_objekte.Summevonmenge < 50)
+GO
+/****** Object:  View [dbo].[xb_abos_inkasso]    Script Date: 02/23/2012 10:49:28 ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+create view [dbo].[xb_abos_inkasso] AS
+SELECT     adressen_bonität_abos.adr_ID, adressen_bonität_abos.bezahlt, adressen_bonität_abos.storniert, adressen_bonität_abos.teilweise_bezahlt, 
+                      adressen_bonität_abos.rechnungen, adressen_bonität_abos.nichtbezahlt_30, adressen_bonität_abos.Zahlungserinnerungen, 
+                      adressen_bonität_abos.Letzte_Zahllungserinnerung, adressen_bonität_abos.Nichtbezahlt_Summe, adressen_bonität_abos.bezahlt_summ, 
+                      adressen_bonität_abos.titelanzahl, xb_abos_erinnerungen.bill_id, xb_abos_erinnerungen.det_id, xb_abos_erinnerungen.versendet, 
+                      xb_abos_erinnerungen.titel, 
+                      CASE WHEN bezahlt > 0 THEN adressen_bonität_abos.Nichtbezahlt_Summe / adressen_bonität_abos.bezahlt_summ ELSE 1 END AS Verhältnis
+FROM         adressen_bonität_abos INNER JOIN
+                      xb_abos_erinnerungen ON adressen_bonität_abos.adr_ID = xb_abos_erinnerungen.det_adr_ID
+WHERE     (adressen_bonität_abos.Zahlungserinnerungen > 1) AND (NOT (adressen_bonität_abos.Letzte_Zahllungserinnerung IS NULL)) AND 
+                      (adressen_bonität_abos.Letzte_Zahllungserinnerung >= DATEADD(m, - 3, CURRENT_TIMESTAMP)) AND 
+                      (CASE WHEN bezahlt > 0 THEN adressen_bonität_abos.Nichtbezahlt_Summe / adressen_bonität_abos.bezahlt_summ ELSE 1 END > 0.2)
+GO
+

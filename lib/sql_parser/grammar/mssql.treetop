@@ -1,19 +1,51 @@
 grammar Mssql
 
-  rule statment
-    ( select ) ';'
+  rule file
+    (statement / comment / space / select)*
+  end
+
+  rule statement
+    view
+    /
+    gibberish
+  end
+
+  rule gibberish
+    ('USE' / 'SET' / 'EXEC') (!"GO" (. / '\n'))* "GO"
+  end
+
+  rule misc
+    (space comment? space)
+  end
+
+  rule comment
+    ' '* '/*' (!'*/' (. / '\n'))* '*/'
+  end
+
+  rule view
+    space? ('CREATE' / 'create') space ('VIEW' / 'view') space full_name space ('AS' / 'as') (space / comment)* select space* 'GO' space?
   end
 
   rule space
-    ' '* '\n'? ' '*
+    [\s]+ <SpaceNode>
   end
 
   rule select
-    ('select' / 'SELECT') space fieldlist (space from)? (space where)? (space group_by)? (space having)?
+    ('select' / 'SELECT') (top/ distinct)* space? fieldlist (space from)? (space? where)? (space? group_by)? (space? having)? (space? order)? ';'? <SelectStatement>
+  end
+
+  rule distinct
+    space? 'DISTINCT' space
+  end
+
+  rule top
+    space? ('TOP' / 'top') space '('? [0-9]* ')'? (space? 'PERCENT')? (space? 'WITH TIES')? space?
   end
 
   rule fieldlist
-    field (space ',' space field)*
+    field (space? ',' space? field)*
+    /
+    '*'
   end
 
   rule field
@@ -25,12 +57,37 @@ grammar Mssql
   end
 
   rule table_expression
-    full_name ( space join space ( '(' space table_expression space ')' / full_name ) space ('on' / 'ON') space expression space )*
+    table_name (space ('AS' / 'as') space name)? ( space? join space ( space? table_expression space? / full_name ) space? ('on' / 'ON') space join_conditions space? )*
+    /
+    function
   end
 
+  rule table_name
+    full_name !'('
+    /
+    '(' space? (select / table_expression) space? ')'
+  end
+
+  rule join_conditions
+    join_condition (space? ('and' / 'AND') space? join_condition)*
+  end
+
+  rule join_condition
+    '(' space? join_condition space? ')'
+    /
+    full_name space? '=' space? full_name
+  end
+
+  rule order
+    'ORDER BY' space? order_fieldlist
+  end
+
+  rule order_fieldlist
+    expression (space 'DESC')? (space? ',' space? expression (space 'DESC')?)*
+  end
 
   rule join
-    ('left' / 'LEFT' / 'right' / 'RIGHT' / 'inner' / 'INNER' / 'outer' / 'OUTER')? space ('join' / 'JOIN')
+    (('left' / 'LEFT' / 'right' / 'RIGHT' / 'inner' / 'INNER' / 'outer' / 'OUTER') space)* ('join' / 'JOIN')
   end
 
   rule where
@@ -45,66 +102,108 @@ grammar Mssql
     ('having' / 'HAVING') space expression
   end
 
+  rule expression
+    l_exp
+  end
 
   rule l_exp
-    c_exp space logical_relation space l_exp
+    c_exp space? logical_relation space? l_exp
     /
     c_exp
   end
 
   rule c_exp
-    operation space compare_operator space c_exp
+    operation space? compare_operator space? c_exp
+    /
+    operation space? 'NOT'? space? 'BETWEEN' space operation space? 'AND' space? operation
+    /
+    operation space? ('NOT' space)? 'LIKE' space like_string
+    /
+    in
+  end
+
+  rule like_string
+    'N'? "'" (!"'" .)* "'"
+  end
+
+  rule in
+    operation space? ('NOT' space)? 'IN' space '(' space? select space? ')'
     /
     operation
   end
 
+  rule operation
+    if space? operator space? operation
+    /
+    exists
+    /
+    if
+  end
+
+  rule cast
+    'CAST(' space? function space? 'AS' space type space? ')'
+    /
+    is_null
+  end
+
+  rule exists
+    'EXISTS' space? '(' space? select space? ')'
+  end
+
+  rule type
+    'int' / 'float' / 'smallint' / 'datetime' / ('varchar' / 'nvarchar') ('(' [0-9]+ ')')?
+    / 'bit'
+  end
+
+  rule operator
+    '+' / '-' / '*' / '/' / '%'
+  end
+
+  rule function
+    full_name space? '(' (space? 'DISTINCT')? space? ('*' / parameterlist )? space? ')'
+    /
+    literal
+  end
+
+  rule parameterlist
+    expression (space? ',' space? expression)*
+  end
+
+  rule literal
+    ('-' space?)? [0-9\.]+ / ("N"? "'" (!"'" .)* "'") / 'NULL' / full_name
+    /
+    '(' space? expression space? ')'
+  end
+
   rule logical_relation
-    "or" / "OR" /
-    "and" / "AND"
+    ("Or" !"der") / ("or" !"der") / ("OR" !"DER") /
+    "and" / "AND" / 'And'
   end
 
   rule compare_operator
     '<=' / '>=' / '<>' / '=' / '<' / '>'
   end
 
-  rule expression
-    l_exp
-  end
-
-  rule operation
-    function space operator space expression
-    /
-    function
-  end
-
-  rule operator
-    '+' / '-' / '*' / '/'
-  end
-
-  rule function
-    full_name '(' space parameterlist space ')'
-    /
-    literal
-  end
-
-  rule parameterlist
-    expression (space ',' space expression)*
-  end
-
-  rule literal
-    [0-9.]+ / ("'" (!"'" .)* "'") / full_name
-    /
-    '(' space expression space ')'
-  end
-
   rule full_name
-    name ("." name)*
+    name ("." (name / '*'))*
   end
 
   rule name
-    ('[' name ']')
+    ('[' (!']' .)* ']')
     /
-    [a-zA-Z_]+
+    [a-zA-Zäüö$_0-9\-]+
+  end
+
+  rule if
+    ('case' space 'when' / 'CASE' space 'WHEN') space expression space ('then' / 'THEN') space expression space (('else' / 'ELSE') space expression space)? ('end' / 'END')
+    /
+    cast
+  end
+
+  rule is_null
+    function space ('is null' / 'IS NULL' / 'Is Null' / 'Is Not Null' / 'IS NOT NULL')
+    /
+    function
   end
 
 end
