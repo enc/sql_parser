@@ -11,7 +11,7 @@ grammar Mssql
   end
 
   rule gibberish
-    ('USE' / 'SET' / 'EXEC') (!"GO" (. / '\n'))* "GO"
+    ('USE' / 'SET' / 'EXEC') (!"GO" (. / '\n'))* "GO" <Gibberish>
   end
 
   rule misc
@@ -23,7 +23,7 @@ grammar Mssql
   end
 
   rule view
-    space? ('CREATE' / 'create') space ('VIEW' / 'view') space full_name space ('AS' / 'as') (space / comment)* select space* 'GO' space?
+    space? ('CREATE' / 'create') space ('VIEW' / 'view') space viewname:full_name space ('AS' / 'as') (space / comment)* select:select space* 'GO' space? <CreateView>
   end
 
   rule space
@@ -31,7 +31,7 @@ grammar Mssql
   end
 
   rule select
-    ('select' / 'SELECT') (top/ distinct)* space? fieldlist (space from)? (space? where)? (space? group_by)? (space? having)? (space? order)? ';'? <SelectStatement>
+    ('select' / 'SELECT') restrictors:(top / distinct)* space? fields:fieldlist from:(space from)? where:(space? where)? group_by:(space? group_by)? having:(space? having)? orderby:(space? order)? ';'? <SelectStatement>
   end
 
   rule distinct
@@ -39,21 +39,21 @@ grammar Mssql
   end
 
   rule top
-    space? ('TOP' / 'top') space '('? [0-9]* ')'? (space? 'PERCENT')? (space? 'WITH TIES')? space?
+    space? ('TOP' / 'top') space '('? [0-9]* ')'? (space? 'PERCENT')? (space? 'WITH TIES')? space? <Topping>
   end
 
   rule fieldlist
-    field (space? ',' space? field)*
+    field (space? ',' space? field)* <Fieldlist>
     /
-    '*'
+    '*' <Field>
   end
 
   rule field
-    expression ( space ('as'/'AS') space name)?
+    description:expression altername:( space ('as'/'AS') space name)? <Field>
   end
 
   rule from
-    ('from' / 'FROM') space table_expression
+    ('from' / 'FROM') space from:table_expression
   end
 
   rule table_expression
@@ -63,9 +63,9 @@ grammar Mssql
   end
 
   rule table_name
-    full_name !'('
+    full_name !'(' <Tablename>
     /
-    '(' space? (select / table_expression) space? ')'
+    '(' space? (select / table_expression) space? ')' <Tablename>
   end
 
   rule join_conditions
@@ -185,13 +185,13 @@ grammar Mssql
   end
 
   rule full_name
-    name ("." (name / '*'))*
+    name ("." (name / '*'))* <FullNameNode>
   end
 
   rule name
-    ('[' (!']' .)* ']')
+    '[' (!']' .)* ']' <NameNode>
     /
-    [a-zA-Zäüö$_0-9\-]+
+    [a-zA-Zäüö$_0-9\-]+ <NameNode>
   end
 
   rule if

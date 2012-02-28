@@ -361,7 +361,7 @@ EOF
       statement.should_not be_nil
     end
 
-    it "should parse all views" do
+    it "should parse all views", :off => true do
       file = File.new("spec/sql_parser/view.txt")
       # file = File.new("spec/sql_parser/view_full.txt")
       statement = @parser.parse file.read
@@ -369,5 +369,37 @@ EOF
       statement.should_not be_nil
     end
 
+  end
+  describe "mssql to psql" do
+
+    it "should correct names" do
+      ms = <<EOF
+SELECT     prj_id, parent_prj_id
+FROM         [dbo].[xb_projekte]
+WHERE     (prj_id <> 135) AND (parent_prj_id = 127 OR
+                      parent_prj_id = 162 OR
+                      parent_prj_id = 170 OR
+                      parent_prj_id = 175 OR
+                      parent_prj_id = 191)
+EOF
+      target = "SELECT prj_id, parent_prj_id FROM \"xb_projekte\" WHERE (prj_id <> 135) AND (parent_prj_id = 127 OR parent_prj_id = 162 OR parent_prj_id = 170 OR parent_prj_id = 175 OR parent_prj_id = 191)\n "
+      @parser.parse(ms).to_sql.should eq(target)
+
+    end
+
+  end
+
+  it "should remove top from select" do
+    ms = <<EOF
+SELECT     TOP (2147483647) dbo.abos.id, dbo.subscriptions_open_end.abo_id AS open_end
+FROM         dbo.abos LEFT OUTER JOIN
+                      dbo.abos_trees ON dbo.abos.id = dbo.abos_trees.child_id LEFT OUTER JOIN
+                      dbo.subscriptions_open_end ON dbo.abos.id = dbo.subscriptions_open_end.abo_id
+WHERE     (dbo.abos_trees.child_id IS NULL)
+ORDER BY dbo.abos.adr_id, dbo.abos.bks_id, dbo.abos.erstellt_am
+EOF
+
+      target = "SELECT abos.id, subscriptions_open_end.abo_id AS open_end FROM abos LEFT OUTER JOIN abos_trees ON abos.id = abos_trees.child_id LEFT OUTER JOIN subscriptions_open_end ON abos.id = subscriptions_open_end.abo_id WHERE (abos_trees.child_id IS NULL) ORDER BY abos.adr_id, abos.bks_id, abos.erstellt_am\n "
+      @parser.parse(ms).to_sql.should eq(target)
   end
 end
