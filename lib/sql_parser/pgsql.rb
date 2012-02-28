@@ -34,9 +34,9 @@ end
 
 class IfStatement < Treetop::Runtime::SyntaxNode
   def to_sql
-    output = "IF " + condition.to_sql + " THEN " + t_result.to_sql
+    output = "CASE WHEN " + condition.to_sql + " THEN " + t_result.to_sql
     output += " ELSE " + altern.e_result.to_sql unless altern.terminal?
-    output += " END IF"
+    output += " END"
     return output
   end
 end
@@ -48,18 +48,23 @@ class FunctionNode < Treetop::Runtime::SyntaxNode
 
   def map name
     mapping = {
-      fnVAL: 'VAL'
+      "fnVAL" => "VAL"
     }
 
-    if mapping.has_key? name.to_sym
-      mapping[name.to_sym]
-      # "VAL"
+    if mapping.has_key? name
+      mapping[name]
     else
       name
     end
   end
 end
 class CreateView < Treetop::Runtime::SyntaxNode
+end
+
+class StringNode < Treetop::Runtime::SyntaxNode
+  def to_sql
+    string.to_sql
+  end
 end
 
 class FullNameNode < Treetop::Runtime::SyntaxNode

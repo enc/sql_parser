@@ -430,4 +430,27 @@ EOF
       target = "SELECT abos.id, subscriptions_open_end.abo_id AS open_end FROM abos LEFT OUTER JOIN abos_trees ON abos.id = abos_trees.child_id LEFT OUTER JOIN subscriptions_open_end ON abos.id = subscriptions_open_end.abo_id WHERE (abos_trees.child_id IS NULL) ORDER BY abos.adr_id, abos.bks_id, abos.erstellt_am\n "
       @parser.parse(ms).to_sql.should eq(target)
   end
+    it "should generate complex names" do
+      ms = <<EOF
+      SELECT     dbo.countries.ID, dbo.countries.fullname, dbo.countries.deutsch, dbo.countries.alpha2, dbo.countries_xp.[ISO 4217 Currency Code], 
+                      dbo.countries_xp.[ISO 4217 Currency Name], dbo.countries_xp.[ITU-T Telephone Code], dbo.countries_xp.[Formal Name], dbo.countries.english
+FROM         dbo.countries INNER JOIN
+                      dbo.countries_xp ON dbo.countries.alpha3 = dbo.countries_xp.[ISO 3166-1 3 Letter Code]
+EOF
+
+      target = 'SELECT countries.ID, countries.fullname, countries.deutsch, countries.alpha2, countries_xp."ISO 4217 Currency Code", countries_xp."ISO 4217 Currency Name", countries_xp."ITU-T Telephone Code", countries_xp."Formal Name", countries.english FROM countries INNER JOIN countries_xp ON countries.alpha3 = countries_xp."ISO 3166-1 3 Letter Code"'
+      @parser.parse(ms).to_sql.strip.should eq(target)
+    end
+    it "should generate nice likes" do
+      ms = <<EOF
+SELECT     MAX(det_ID) AS Maxvondet_ID, MAX(det_datum) AS Maxvondet_datum, det_adr_ID
+FROM         dbo.det
+WHERE     (Einstufung LIKE 'wünscht%') AND (Projekt LIKE N'рп%' OR
+                      Projekt LIKE N'%печать%')
+GROUP BY det_adr_ID
+EOF
+
+      target = "SELECT MAX(det_ID) AS Maxvondet_ID, MAX(det_datum) AS Maxvondet_datum, det_adr_ID FROM det WHERE (Einstufung LIKE 'wünscht%') AND (Projekt LIKE 'рп%' OR Projekt LIKE '%печать%') GROUP BY det_adr_ID"
+      @parser.parse(ms).to_sql.strip.should eq(target)
+    end
 end

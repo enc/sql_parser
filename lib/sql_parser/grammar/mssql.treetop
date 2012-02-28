@@ -31,7 +31,7 @@ grammar Mssql
   end
 
   rule select
-    ('select' / 'SELECT') restrictors:(top / distinct)* space? fields:fieldlist from:(space from)? where:(space? where)? group_by:(space? group_by)? having:(space? having)? orderby:(space? order)? ';'? <SelectStatement>
+    ('select' / 'SELECT') restrictors:(top / distinct)* space? fields:fieldlist from:(space from)? where:(space? where)? group_by:(space? group_by having:(space? having)? )? orderby:(space? order)? ';'? <SelectStatement>
   end
 
   rule distinct
@@ -39,7 +39,7 @@ grammar Mssql
   end
 
   rule top
-    space? ('TOP' / 'top') space '('? [0-9]* ')'? (space? 'PERCENT')? (space? 'WITH TIES')? space? <Topping>
+    std:(space? ('TOP' / 'top') space '('? [0-9]* ')'? (space? 'PERCENT')?) ties:(space? 'WITH TIES')? space? <Topping>
   end
 
   rule fieldlist
@@ -123,7 +123,7 @@ grammar Mssql
   end
 
   rule like_string
-    'N'? "'" (!"'" .)* "'"
+    'N'? string:("'" (!"'" .)* "'") <StringNode>
   end
 
   rule in
@@ -170,7 +170,9 @@ grammar Mssql
   end
 
   rule literal
-    ('-' space?)? [0-9\.]+ / ("N"? "'" (!"'" .)* "'") / 'NULL' / full_name
+    ('-' space?)? [0-9\.]+ / "N"? string:("'" (!"'" .)* "'") <StringNode>
+    /
+    'NULL' / full_name
     /
     '(' space? expression space? ')'
   end
