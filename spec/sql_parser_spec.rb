@@ -384,7 +384,35 @@ WHERE     (prj_id <> 135) AND (parent_prj_id = 127 OR
 EOF
       target = "SELECT prj_id, parent_prj_id FROM \"xb_projekte\" WHERE (prj_id <> 135) AND (parent_prj_id = 127 OR parent_prj_id = 162 OR parent_prj_id = 170 OR parent_prj_id = 175 OR parent_prj_id = 191)\n "
       @parser.parse(ms).to_sql.should eq(target)
+    end
 
+    it "should generate functions" do
+      ms = <<EOF
+SELECT     MAX(dbo.det.det_ID) AS Maxvondet_ID, dbo.det.det_user, dbo.det.det_datum, dbo.det.det_adr_ID, dbo.det.Einstufung, 
+                      dbo.xb_projekte.parent_prj_id
+FROM         dbo.xb_projekte INNER JOIN
+                      dbo.det ON dbo.xb_projekte.prj_id = dbo.det.det_prj_id
+WHERE     (dbo.det.calltype = 'BG')
+GROUP BY dbo.det.det_user, dbo.det.det_datum, dbo.det.det_adr_ID, dbo.det.Einstufung, dbo.xb_projekte.parent_prj_id
+EOF
+
+      target = "SELECT MAX(det.det_ID) AS Maxvondet_ID, det.det_user, det.det_datum, det.det_adr_ID, det.Einstufung, xb_projekte.parent_prj_id FROM xb_projekte INNER JOIN det ON xb_projekte.prj_id = det.det_prj_id WHERE (det.calltype = 'BG') GROUP BY det.det_user, det.det_datum, det.det_adr_ID, det.Einstufung, xb_projekte.parent_prj_id\n "
+      @parser.parse(ms).to_sql.should eq(target)
+    end
+
+    it "should convert functions" do
+      ms = <<EOF
+SELECT     dbo.bills_payed_amounts.bill_id, dbo.bills_payed_amounts.Betrag, dbo.bills_payed_amounts.raten, dbo.bills_payed_amounts.abbezahlt, 
+                      dbo.bills_payed_amounts.eingezahlt, dbo.fnVAL((dbo.bills_payed_amounts.eingezahlt + 0.5) 
+                      * dbo.bills_payed_amounts.raten / dbo.bills_payed_amounts.Betrag) AS eingezahlt_berechnet, dbo.bills_payed_amounts.det_id, 
+                      dbo.bills_payed_amounts.letztes_einzahlungsdatum, dbo.bills_payed_amounts.bill_datum
+FROM         dbo.bills_payed_amounts LEFT OUTER JOIN
+                      dbo.bills_payed ON dbo.bills_payed_amounts.bill_id = dbo.bills_payed.bill_id
+WHERE     (dbo.bills_payed_amounts.raten = dbo.bills_payed_amounts.abbezahlt) AND (dbo.bills_payed.bill_id IS NULL)
+EOF
+
+      target = "SELECT bills_payed_amounts.bill_id, bills_payed_amounts.Betrag, bills_payed_amounts.raten, bills_payed_amounts.abbezahlt, bills_payed_amounts.eingezahlt, VAL((bills_payed_amounts.eingezahlt + 0.5) * bills_payed_amounts.raten / bills_payed_amounts.Betrag) AS eingezahlt_berechnet, bills_payed_amounts.det_id, bills_payed_amounts.letztes_einzahlungsdatum, bills_payed_amounts.bill_datum FROM bills_payed_amounts LEFT OUTER JOIN bills_payed ON bills_payed_amounts.bill_id = bills_payed.bill_id WHERE (bills_payed_amounts.raten = bills_payed_amounts.abbezahlt) AND (bills_payed.bill_id IS NULL)"
+      @parser.parse(ms).to_sql.strip.should eq(target)
     end
 
   end

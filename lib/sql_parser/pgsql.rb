@@ -1,6 +1,6 @@
 class Statement < Treetop::Runtime::SyntaxNode
-  def to_s
-    command.to_sql
+  def to_sql
+    command.to_sql.strip
   end
 end
 
@@ -8,7 +8,7 @@ class SelectStatement < Treetop::Runtime::SyntaxNode
   def to_sql
     elements.collect do |item|
       item.to_sql
-    end.join("")
+    end.join("").strip
   end
 end
 
@@ -34,13 +34,30 @@ end
 
 class IfStatement < Treetop::Runtime::SyntaxNode
   def to_sql
-    output = "if " + condition.to_sql + " { " + t_result.to_sql + " }"
-    output += " else { " + altern.e_result.to_sql + " }" unless altern.terminal?
+    output = "IF " + condition.to_sql + " THEN " + t_result.to_sql
+    output += " ELSE " + altern.e_result.to_sql unless altern.terminal?
+    output += " END IF"
     return output
   end
 end
 
 class FunctionNode < Treetop::Runtime::SyntaxNode
+  def to_sql
+    map(fname.to_sql) + rest.to_sql
+  end
+
+  def map name
+    mapping = {
+      fnVAL: 'VAL'
+    }
+
+    if mapping.has_key? name.to_sym
+      mapping[name.to_sym]
+      # "VAL"
+    else
+      name
+    end
+  end
 end
 class CreateView < Treetop::Runtime::SyntaxNode
 end

@@ -160,7 +160,7 @@ grammar Mssql
   end
 
   rule function
-    full_name space? '(' (space? 'DISTINCT')? space? ('*' / parameterlist )? space? ')' <FunctionNode>
+    fname:full_name space? rest:('(' (space? 'DISTINCT')? space? ('*' / parameterlist )? space? ')') <FunctionNode>
     /
     literal
   end
