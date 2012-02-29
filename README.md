@@ -1,7 +1,7 @@
 #SQL Parser
 
 SQL is not SQL!
-Nearly everybody has it's own little dialect. I had a lot of problems
+Nearly vendor has it's own little dialect. I had a lot of problems
 migrating from MS Access to SQL Server.
 
 This tool reads a SQL-File parses it and writes a file in a specified
@@ -20,7 +20,7 @@ parsesql -i access -o sqlserver in.sql out.sql
 This will do the work
 
 Supported formats:
-* MS Access
-* Ms SQL Server
-* Postgresql
+ * MS Access (not done yet)
+ * Ms SQL Server
+ * Postgresql
 

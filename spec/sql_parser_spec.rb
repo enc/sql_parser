@@ -451,7 +451,7 @@ GROUP BY det_adr_ID
 EOF
 
       target = "SELECT MAX(det_ID) AS Maxvondet_ID, MAX(det_datum) AS Maxvondet_datum, det_adr_ID FROM det WHERE (Einstufung LIKE 'wünscht%') AND (Projekt LIKE 'рп%' OR Projekt LIKE '%печать%') GROUP BY det_adr_ID"
-      @parser.parse(ms).to_sql.strip.wont_equal target
+      @parser.parse(ms).to_sql.strip.must_equal target
     end
   end
 end
