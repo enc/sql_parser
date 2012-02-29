@@ -133,7 +133,7 @@ grammar Mssql
   end
 
   rule operation
-    if space? operator space? operation
+    left:if space? op:operator space? right:operation <OperationNode>
     /
     exists
     /
@@ -156,7 +156,15 @@ grammar Mssql
   end
 
   rule operator
-    '+' / '-' / '*' / '/' / '%'
+    '+' <PlusOperator>
+    /
+    '-'
+    /
+    '*'
+    /
+    '/'
+    /
+    '%'
   end
 
   rule function
@@ -170,9 +178,13 @@ grammar Mssql
   end
 
   rule literal
-    ('-' space?)? [0-9\.]+ / "N"? string:("'" (!"'" .)* "'") <StringNode>
+    ('-' space?)? [0-9\.]+ <NumNode>
+    / 
+    "N"? string:("'" (!"'" .)* "'") <StringNode>
     /
-    'NULL' / full_name
+    'NULL'
+    /
+    full_name
     /
     '(' space? expression space? ')'
   end
@@ -193,7 +205,7 @@ grammar Mssql
   rule name
     '[' (!']' .)* ']' <NameNode>
     /
-    [a-zA-Zäüö$_0-9\-]+ <NameNode>
+    [a-zA-Zäüö$_0-9]+ <NameNode>
   end
 
   rule if

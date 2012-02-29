@@ -18,6 +18,20 @@ class SpaceNode < Treetop::Runtime::SyntaxNode
   end
 end
 
+class OperationNode < Treetop::Runtime::SyntaxNode
+  def to_sql
+    left.to_sql.strip + ' ' + (is_string? ? op.to_sql(true) : op.to_sql) + ' ' + right.to_sql.strip
+  end
+
+  def is_string?
+    if left.is_string? or right.is_string?
+      return true
+    else
+      return false
+    end
+  end
+end
+
 class RootNode < Treetop::Runtime::SyntaxNode
   def to_sql
     elements.collect do |item|
@@ -29,6 +43,16 @@ end
 class Topping < Treetop::Runtime::SyntaxNode
   def to_sql
     " "
+  end
+end
+
+class PlusOperator < Treetop::Runtime::SyntaxNode
+  def to_sql switch=false
+    if switch
+      "||"
+    else
+      "+"
+    end
   end
 end
 
@@ -60,10 +84,17 @@ class FunctionNode < Treetop::Runtime::SyntaxNode
 end
 class CreateView < Treetop::Runtime::SyntaxNode
 end
+class NumNode < Treetop::Runtime::SyntaxNode
+
+end
 
 class StringNode < Treetop::Runtime::SyntaxNode
   def to_sql
     string.to_sql
+  end
+
+  def is_string?
+    true
   end
 end
 

@@ -37,6 +37,9 @@ describe SqlParser do
 
       statement = @parser.parse "select 3+(sdffsd-5);"
       statement.wont_be_nil
+
+      statement = @parser.parse "select ' ' + 'Jimbo';"
+      statement.wont_be_nil
     end
     it "should parse tables joins" do
       statement = @parser.parse "select bilbo from bimo;"
@@ -453,5 +456,16 @@ EOF
       target = "SELECT MAX(det_ID) AS Maxvondet_ID, MAX(det_datum) AS Maxvondet_datum, det_adr_ID FROM det WHERE (Einstufung LIKE 'wünscht%') AND (Projekt LIKE 'рп%' OR Projekt LIKE '%печать%') GROUP BY det_adr_ID"
       @parser.parse(ms).to_sql.strip.must_equal target
     end
+
+    it "should generate correct concatenate operator" do
+
+      statement = @parser.parse "select 3+(sdffsd-5);"
+      statement.to_sql.must_equal "select 3 + (sdffsd - 5);"
+
+      statement = @parser.parse "select ' ' + 'Jimbo';"
+      statement.to_sql.must_equal "select ' ' || 'Jimbo';"
+
+    end
+
   end
 end
