@@ -67,7 +67,7 @@ module SqlParser
             object.save
             puts "The result(#{job.id}) " + result.to_sql
           else
-            object.response = error_message
+            object.response = @parser.report
             object.save
           end
           beans.put job.body
