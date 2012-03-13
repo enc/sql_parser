@@ -1,0 +1,45 @@
+#!/usr/bin/env ruby
+
+STDOUT.sync = true
+
+$:.unshift File.join(File.dirname(__FILE__), *%w[.. lib])
+
+require 'rubygems'
+require 'optparse'
+
+begin
+  # Save ARGV in case someone wants to use it later
+  ORIGINAL_ARGV = ARGV.dup
+
+  options = {}
+
+  opts = OptionParser.new do |opts|
+    opts.banner = <<-EOF
+  Usage:
+    Starting:
+      sql_wizz_watch [-c <channel name>]
+  EOF
+  
+    opts.on("-cCONFIG", "--config-file CONFIG", "Configuration file") do |x|
+      options[:config] = x
+    end
+  end
+  
+  opts.parse!
+  
+  # dispatch
+  if options[:config]
+    require 'sql_parser'
+    SqlParser::Runner.new.run
+  end
+rescue Exception => e
+  if e.instance_of?(SystemExit)
+    raise
+  else
+    puts 'Uncaught exception'
+    puts e.message
+    puts e.backtrace.join("\n")
+  end
+end
+
+

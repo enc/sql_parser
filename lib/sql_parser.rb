@@ -1,9 +1,12 @@
 require "sql_parser/version"
 require 'treetop'
+require 'beanstalk-client'
 require "sql_parser/pgsql"
+require "mongo_mapper"
 # require "sql_parser/node_extension"
 
 Treetop.load(File.expand_path(File.join(File.dirname(__FILE__), "sql_parser/grammar/mssql.treetop")))
+MongoMapper.database = 'sqlwizz'
 
 module SqlParser
 
@@ -41,5 +44,44 @@ module SqlParser
         puts @parser.failure_column
       end
     end
+  end
+
+  class Runner
+
+    def initialize
+      @parser = Parser.new('MssqlParser')
+    end
+
+    def run
+      error_message = "It shouldn't be."
+      beanstalk = Beanstalk::Pool.new(['localhost:11300'])
+      beanstalk.watch "deliver"
+      loop do
+        job = beanstalk.reserve
+        puts "The request(#{job.id}) " + job.body
+        object = Request.find job.body
+        result = @parser.parse object.source
+        beanstalk.on_tube "return" do |beans|
+          if result
+            object.response = result.to_sql
+            object.save
+            puts "The result(#{job.id}) " + result.to_sql
+          else
+            object.response = error_message
+            object.save
+          end
+          beans.put job.body
+        end
+        job.delete
+      end
+    end
+  end
+
+  # represents a single SQL conversion request
+  class Request
+    include MongoMapper::Document
+
+    key :source, String
+    key :response, String
   end
 end

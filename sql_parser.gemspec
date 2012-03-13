@@ -23,5 +23,7 @@ Gem::Specification.new do |s|
   s.add_development_dependency "turn"
   # s.add_development_dependency "guard"
   s.add_runtime_dependency "treetop"
+  s.add_runtime_dependency "beanstalk-client"
+  s.add_runtime_dependency "mongo_mapper"
   # s.add_runtime_dependency "rest-client"
 end
