@@ -128,3 +128,5 @@ class Field < Treetop::Runtime::SyntaxNode
 end
 class Tablename < Treetop::Runtime::SyntaxNode
 end
+class CreateTable < Treetop::Runtime::SyntaxNode
+end

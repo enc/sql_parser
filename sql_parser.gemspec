@@ -25,5 +25,6 @@ Gem::Specification.new do |s|
   s.add_runtime_dependency "treetop"
   s.add_runtime_dependency "beanstalk-client"
   s.add_runtime_dependency "mongo_mapper"
+  s.add_runtime_dependency "bson_ext"
   # s.add_runtime_dependency "rest-client"
 end

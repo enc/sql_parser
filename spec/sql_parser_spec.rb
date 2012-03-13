@@ -468,4 +468,15 @@ EOF
     end
 
   end
+  describe "tables" do
+    it "must recognize a simple table" do
+      statement = @parser.parse "CREATE TABLE [dbo].[xb_vw](\n  [vw_id] [int] IDENTITY(1,1) NOT NULL,\n  [von] [datetime2](0) NULL,\n  [bis] [datetime2](0) NULL,\n  [ort] [nvarchar](15) NULL,\n  [fern] [nvarchar](15) NULL,\n  [mobil] [nvarchar](15) NULL,\n  [ausland] [nvarchar](15) NULL,\n  [swiss] [nvarchar](15) NULL,\n  [austria] [nvarchar](15) NULL,\n  [swiss_mobile] [nvarchar](10) NULL,\n  [austria_mobile] [nvarchar](10) NULL\n) ON [PRIMARY]\nGO\n"
+      statement.wont_be_nil
+    end
+
+    it "must recognize indexes" do
+      statement = @parser.parse "CREATE TABLE [dbo].[xb_tarife_shops](\n  [shop_id] [int] IDENTITY(1,1) NOT NULL,\n  [prj_id] [int] NULL,\n  [name] [nvarchar](50) NULL,\n  [provision] [float] NULL,\n  [email] [nvarchar](120) NULL,\n  [foreseek] [int] NULL,\n  [SSMA_TimeStamp] [timestamp] NOT NULL,\n  CONSTRAINT [xb_tarife_shops$PrimaryKey] PRIMARY KEY CLUSTERED\n  (\n    [shop_id] ASC\n  )WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY]\n) ON [PRIMARY]\nGO\n"
+      statement.wont_be_nil
+    end
+  end
 end
