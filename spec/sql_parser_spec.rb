@@ -478,5 +478,14 @@ EOF
       statement = @parser.parse "CREATE TABLE [dbo].[xb_tarife_shops](\n  [shop_id] [int] IDENTITY(1,1) NOT NULL,\n  [prj_id] [int] NULL,\n  [name] [nvarchar](50) NULL,\n  [provision] [float] NULL,\n  [email] [nvarchar](120) NULL,\n  [foreseek] [int] NULL,\n  [SSMA_TimeStamp] [timestamp] NOT NULL,\n  CONSTRAINT [xb_tarife_shops$PrimaryKey] PRIMARY KEY CLUSTERED\n  (\n    [shop_id] ASC\n  )WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY]\n) ON [PRIMARY]\nGO\n"
       statement.wont_be_nil
     end
+
+    it "must parse all tables" do
+      skip "Dauert zu lange. Testet alle tables."
+      file = File.new("spec/sql_parser/tables_full.txt")
+      statement = @parser.parse file.read
+      puts @parser.report unless statement
+      statement.wont_be_nil
+    end
+
   end
 end

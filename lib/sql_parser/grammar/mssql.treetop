@@ -13,7 +13,7 @@ grammar Mssql
   end
 
   rule gibberish
-    ('USE' / 'SET' / 'EXEC') (!"GO" (. / '\n'))* "GO" <Gibberish>
+    ('USE' / 'SET' / 'EXEC' / 'ALTER TABLE' ) (!"GO" (. / '\n'))* "GO" <Gibberish>
   end
 
   rule misc
@@ -29,7 +29,7 @@ grammar Mssql
   end
 
   rule table
-    'CREATE TABLE' space full_name space? '(' space row_definition+ space? constraint space? ') ON [PRIMARY]' space 'GO' <CreateTable>
+    'CREATE TABLE' space full_name space? '(' space row_definition+ space? constraint? space? ') ON [PRIMARY]' space 'GO' <CreateTable>
   end
 
   rule space
@@ -49,15 +49,15 @@ grammar Mssql
   end
 
   rule row_definition
-    name space name ('(' [0-9,]+ ')')? space (identity space)? fieldoptions ','? space
+    name space name ('(' ([0-9,]+ / 'max') ')')? space (identity space)? fieldoptions ','? space
   end
 
   rule constraint
-    'CONSTRAINT' space name space? constraint_type space? '(' space? ( name space ('ASC' / 'DESC') space? )+ ')WITH' space '(' (!')' .)* ')' space 'ON [PRIMARY]'
+    'CONSTRAINT' space name space? constraint_type space? '(' space? ( name space ('ASC' / 'DESC') space? )+ ')WITH' space? '(' (!')' .)* ')' space? 'ON [PRIMARY]'
   end
 
   rule constraint_type
-    'PRIMARY KEY ' ('CLUSTERED')
+    'PRIMARY KEY ' ('CLUSTERED' / 'NONCLUSTERED')
   end
 
   rule fieldoptions

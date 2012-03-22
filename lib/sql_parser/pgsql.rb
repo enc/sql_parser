@@ -1,10 +1,14 @@
-class Statement < Treetop::Runtime::SyntaxNode
+class BaseStatement < Treetop::Runtime::SyntaxNode
+
+end
+
+class Statement < BaseStatement
   def to_sql
     command.to_sql.strip
   end
 end
 
-class SelectStatement < Treetop::Runtime::SyntaxNode
+class SelectStatement < BaseStatement
   def to_sql
     elements.collect do |item|
       item.to_sql
@@ -12,13 +16,13 @@ class SelectStatement < Treetop::Runtime::SyntaxNode
   end
 end
 
-class SpaceNode < Treetop::Runtime::SyntaxNode
+class SpaceNode < BaseStatement
   def to_sql
     " "
   end
 end
 
-class OperationNode < Treetop::Runtime::SyntaxNode
+class OperationNode < BaseStatement
   def to_sql
     left.to_sql.strip + ' ' + (is_string? ? op.to_sql(true) : op.to_sql) + ' ' + right.to_sql.strip
   end
@@ -32,7 +36,7 @@ class OperationNode < Treetop::Runtime::SyntaxNode
   end
 end
 
-class RootNode < Treetop::Runtime::SyntaxNode
+class RootNode < BaseStatement
   def to_sql
     elements.collect do |item|
       item.to_sql
@@ -40,13 +44,13 @@ class RootNode < Treetop::Runtime::SyntaxNode
   end
 end
 
-class Topping < Treetop::Runtime::SyntaxNode
+class Topping < BaseStatement
   def to_sql
     " "
   end
 end
 
-class PlusOperator < Treetop::Runtime::SyntaxNode
+class PlusOperator < BaseStatement
   def to_sql switch=false
     if switch
       "||"
@@ -56,7 +60,7 @@ class PlusOperator < Treetop::Runtime::SyntaxNode
   end
 end
 
-class IfStatement < Treetop::Runtime::SyntaxNode
+class IfStatement < BaseStatement
   def to_sql
     output = "CASE WHEN " + condition.to_sql + " THEN " + t_result.to_sql
     output += " ELSE " + altern.e_result.to_sql unless altern.terminal?
@@ -65,7 +69,7 @@ class IfStatement < Treetop::Runtime::SyntaxNode
   end
 end
 
-class FunctionNode < Treetop::Runtime::SyntaxNode
+class FunctionNode < BaseStatement
   def to_sql
     map(fname.to_sql) + rest.to_sql
   end
@@ -82,13 +86,13 @@ class FunctionNode < Treetop::Runtime::SyntaxNode
     end
   end
 end
-class CreateView < Treetop::Runtime::SyntaxNode
+class CreateView < BaseStatement
 end
-class NumNode < Treetop::Runtime::SyntaxNode
+class NumNode < BaseStatement
 
 end
 
-class StringNode < Treetop::Runtime::SyntaxNode
+class StringNode < BaseStatement
   def to_sql
     string.to_sql
   end
@@ -98,7 +102,7 @@ class StringNode < Treetop::Runtime::SyntaxNode
   end
 end
 
-class FullNameNode < Treetop::Runtime::SyntaxNode
+class FullNameNode < BaseStatement
   def to_sql
     output =
     elements.map do |item|
@@ -111,22 +115,22 @@ class FullNameNode < Treetop::Runtime::SyntaxNode
   end
 end
 
-class Gibberish < Treetop::Runtime::SyntaxNode
+class Gibberish < BaseStatement
   def to_sql
     ""
   end
 end
 
-class NameNode < Treetop::Runtime::SyntaxNode
+class NameNode < BaseStatement
   def to_sql
     text_value.gsub(/[\[\]]/,'"')
   end
 end
-class Fieldlist < Treetop::Runtime::SyntaxNode
+class Fieldlist < BaseStatement
 end
-class Field < Treetop::Runtime::SyntaxNode
+class Field < BaseStatement
 end
-class Tablename < Treetop::Runtime::SyntaxNode
+class Tablename < BaseStatement
 end
-class CreateTable < Treetop::Runtime::SyntaxNode
+class CreateTable < BaseStatement
 end
