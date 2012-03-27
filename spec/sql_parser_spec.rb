@@ -1,91 +1,91 @@
 # encoding: utf-8
-require 'minitest_helper'
+require 'spec_helper'
 
 describe SqlParser do
-  before(:each) do
+  before(:all) do
     @parser = SqlParser::Parser.new("MssqlParser")
   end
   describe ".parse" do
     it "should parse simple select statement" do
       statement = @parser.parse "select chim;"
-      statement.wont_be_nil
+      statement.should_not be_nil
     end
     it "should parse sample select statements" do
 
       statement = @parser.parse "select 1, 4;"
-      statement.wont_be_nil
+      statement.should_not be_nil
 
       statement = @parser.parse "select 1 ll bb, 4;"
-      statement.must_be_nil
+      statement.should be_nil
 
       statement = @parser.parse "select 'rrr';"
-      statement.wont_be_nil
+      statement.should_not be_nil
 
       statement = @parser.parse "select (joloopi ), bim;"
-      statement.wont_be_nil
+      statement.should_not be_nil
     end
     it "should parse operations" do
 
       statement = @parser.parse "select 3+4;"
-      statement.wont_be_nil
+      statement.should_not be_nil
 
       statement = @parser.parse "select 3 + 4;"
-      statement.wont_be_nil
+      statement.should_not be_nil
 
       statement = @parser.parse "select 3+sdffsd;"
-      statement.wont_be_nil
+      statement.should_not be_nil
 
       statement = @parser.parse "select 3+(sdffsd-5);"
-      statement.wont_be_nil
+      statement.should_not be_nil
 
       statement = @parser.parse "select ' ' + 'Jimbo';"
-      statement.wont_be_nil
+      statement.should_not be_nil
     end
     it "should parse tables joins" do
       statement = @parser.parse "select bilbo from bimo;"
-      statement.wont_be_nil
+      statement.should_not be_nil
 
       statement = @parser.parse "select bilbo from bimo join bima on jim = bin;"
-      statement.wont_be_nil
+      statement.should_not be_nil
 
       statement = @parser.parse "select bilbo from bimo join bima on bimo.jim = bima.bin;"
-      statement.wont_be_nil
+      statement.should_not be_nil
     end
 
     it "should parse wheres " do
       statement = @parser.parse "select bilbo from bimo where count = 3;"
-      statement.wont_be_nil
+      statement.should_not be_nil
 
       statement = @parser.parse "SELECT prj_id, parent_prj_id FROM dbo.xb_projekte WHERE prj_id <> 135;"
-      statement.wont_be_nil
+      statement.should_not be_nil
 
       statement = @parser.parse "SELECT prj_id, parent_prj_id FROM dbo.xb_projekte WHERE prj_id or 135;"
-      statement.wont_be_nil
+      statement.should_not be_nil
 
       statement = @parser.parse "SELECT prj_id, parent_prj_id FROM dbo.xb_projekte WHERE prj_id or 135 > 12;"
-      statement.wont_be_nil
+      statement.should_not be_nil
 
       statement = @parser.parse "SELECT prj_id, parent_prj_id FROM dbo.xb_projekte WHERE (prj_id or 135) > (12);"
-      statement.wont_be_nil
+      statement.should_not be_nil
 
       # statement = @parser.parse "SELECT prj_id, parent_prj_id FROM dbo.xb_projekte WHERE prj_id or 135;"
-      # statement.wont_be_nil
+      # statement.should_not be_nil
 
       statement = @parser.parse "SELECT prj_id, parent_prj_id FROM dbo.xb_projekte WHERE  (prj_id <> 135) AND (parent_prj_id = 127 OR parent_prj_id = 162 OR parent_prj_id = 170 OR parent_prj_id = 175 OR parent_prj_id = 191);"
-      statement.wont_be_nil
+      statement.should_not be_nil
     end
 
     it "should parse having and groupby" do
       statement = @parser.parse "SELECT dbo.abos.id, COUNT(dbo.abos_ausgelieferte_titeln.menge) AS Anzahlvonmenge, dbo.abos.ausgaben FROM dbo.abos INNER JOIN dbo.abos_ausgelieferte_titeln ON dbo.abos.bks_id = dbo.abos_ausgelieferte_titeln.bks_id AND dbo.abos.id = dbo.abos_ausgelieferte_titeln.abos_id WHERE (dbo.abos.status_id = 147) OR (dbo.abos.status_id = 148) GROUP BY dbo.abos.id, dbo.abos.ausgaben HAVING (COUNT(dbo.abos_ausgelieferte_titeln.menge) >= dbo.abos.ausgaben);"
-      statement.wont_be_nil
+      statement.should_not be_nil
     end
     it "should parse case statements" do
       statement = @parser.parse "SELECT dbo.abos.id, SUM((CASE WHEN abotiteln.status_id = 149 THEN 1 ELSE 0 END)) AS ausgelieferte, dbo.abos.ausgaben FROM dbo.abotiteln INNER JOIN dbo.abos ON dbo.abotiteln.abos_id = dbo.abos.id GROUP BY dbo.abos.id, dbo.abos.ausgaben;"
-      statement.wont_be_nil
+      statement.should_not be_nil
     end
     it "should parse is null" do
       statement = @parser.parse "SELECT     dbo.abos.id, dbo.abos.adr_id, dbo.abos.bks_id, dbo.abos.bst_id, dbo.abos.status_id FROM         dbo.abos INNER JOIN dbo.abotiteln ON dbo.abos.id = dbo.abotiteln.abos_id WHERE     (dbo.abotiteln.status_id IS NULL OR dbo.abotiteln.status_id = 150 OR dbo.abotiteln.status_id = 156 OR dbo.abotiteln.status_id = 173) AND (dbo.abos.status_id = 152) GROUP BY dbo.abos.id, dbo.abos.adr_id, dbo.abos.bks_id, dbo.abos.bst_id, dbo.abos.status_id;"
-      statement.wont_be_nil
+      statement.should_not be_nil
     end
 
     it "should parse a file" do
@@ -126,7 +126,7 @@ GO
 
 EOF
       statement = @parser.parse text
-      statement.wont_be_nil
+      statement.should_not be_nil
 
       text = <<EOF
 USE [production]
@@ -168,7 +168,7 @@ GO
 
 EOF
       statement = @parser.parse text
-      statement.wont_be_nil
+      statement.should_not be_nil
 
       text = <<EOF
 USE [production]
@@ -361,16 +361,15 @@ GO
 EOF
       statement = @parser.parse text
       puts @parser.report unless statement
-      statement.wont_be_nil
+      statement.should_not be_nil
     end
 
-    it "should parse all views" do
-      skip "Dauert zu lange. Testet alle views."
+    it "should parse all views", :off => true do
       file = File.new("spec/sql_parser/view.txt")
       # file = File.new("spec/sql_parser/view_full.txt")
       statement = @parser.parse file.read
       puts @parser.report unless statement
-      statement.wont_be_nil
+      statement.should_not be_nil
     end
 
   end
@@ -387,7 +386,7 @@ WHERE     (prj_id <> 135) AND (parent_prj_id = 127 OR
                       parent_prj_id = 191)
 EOF
       target = "SELECT prj_id, parent_prj_id FROM \"xb_projekte\" WHERE (prj_id <> 135) AND (parent_prj_id = 127 OR parent_prj_id = 162 OR parent_prj_id = 170 OR parent_prj_id = 175 OR parent_prj_id = 191)\n "
-      @parser.parse(ms).to_sql.must_equal target
+      @parser.parse(ms).to_sql.should eq(target)
     end
 
     it "should generate functions" do
@@ -401,7 +400,7 @@ GROUP BY dbo.det.det_user, dbo.det.det_datum, dbo.det.det_adr_ID, dbo.det.Einstu
 EOF
 
       target = "SELECT MAX(det.det_ID) AS Maxvondet_ID, det.det_user, det.det_datum, det.det_adr_ID, det.Einstufung, xb_projekte.parent_prj_id FROM xb_projekte INNER JOIN det ON xb_projekte.prj_id = det.det_prj_id WHERE (det.calltype = 'BG') GROUP BY det.det_user, det.det_datum, det.det_adr_ID, det.Einstufung, xb_projekte.parent_prj_id\n "
-      @parser.parse(ms).to_sql.must_equal target
+      @parser.parse(ms).to_sql.should eq(target)
     end
 
     it "should convert functions" do
@@ -416,9 +415,10 @@ WHERE     (dbo.bills_payed_amounts.raten = dbo.bills_payed_amounts.abbezahlt) AN
 EOF
 
       target = "SELECT bills_payed_amounts.bill_id, bills_payed_amounts.Betrag, bills_payed_amounts.raten, bills_payed_amounts.abbezahlt, bills_payed_amounts.eingezahlt, VAL((bills_payed_amounts.eingezahlt + 0.5) * bills_payed_amounts.raten / bills_payed_amounts.Betrag) AS eingezahlt_berechnet, bills_payed_amounts.det_id, bills_payed_amounts.letztes_einzahlungsdatum, bills_payed_amounts.bill_datum FROM bills_payed_amounts LEFT OUTER JOIN bills_payed ON bills_payed_amounts.bill_id = bills_payed.bill_id WHERE (bills_payed_amounts.raten = bills_payed_amounts.abbezahlt) AND (bills_payed.bill_id IS NULL)"
-      @parser.parse(ms).to_sql.strip.must_equal target
+      @parser.parse(ms).to_sql.strip.should eq(target)
     end
 
+  end
 
   it "should remove top from select" do
     ms = <<EOF
@@ -431,7 +431,7 @@ ORDER BY dbo.abos.adr_id, dbo.abos.bks_id, dbo.abos.erstellt_am
 EOF
 
       target = "SELECT abos.id, subscriptions_open_end.abo_id AS open_end FROM abos LEFT OUTER JOIN abos_trees ON abos.id = abos_trees.child_id LEFT OUTER JOIN subscriptions_open_end ON abos.id = subscriptions_open_end.abo_id WHERE (abos_trees.child_id IS NULL) ORDER BY abos.adr_id, abos.bks_id, abos.erstellt_am\n "
-      @parser.parse(ms).to_sql.must_equal target
+      @parser.parse(ms).to_sql.should eq(target)
   end
     it "should generate complex names" do
       ms = <<EOF
@@ -442,7 +442,7 @@ FROM         dbo.countries INNER JOIN
 EOF
 
       target = 'SELECT countries.ID, countries.fullname, countries.deutsch, countries.alpha2, countries_xp."ISO 4217 Currency Code", countries_xp."ISO 4217 Currency Name", countries_xp."ITU-T Telephone Code", countries_xp."Formal Name", countries.english FROM countries INNER JOIN countries_xp ON countries.alpha3 = countries_xp."ISO 3166-1 3 Letter Code"'
-      @parser.parse(ms).to_sql.strip.must_equal target
+      @parser.parse(ms).to_sql.strip.should eq(target)
     end
     it "should generate nice likes" do
       ms = <<EOF
@@ -454,16 +454,16 @@ GROUP BY det_adr_ID
 EOF
 
       target = "SELECT MAX(det_ID) AS Maxvondet_ID, MAX(det_datum) AS Maxvondet_datum, det_adr_ID FROM det WHERE (Einstufung LIKE 'wünscht%') AND (Projekt LIKE 'рп%' OR Projekt LIKE '%печать%') GROUP BY det_adr_ID"
-      @parser.parse(ms).to_sql.strip.must_equal target
+      @parser.parse(ms).to_sql.strip.should eq(target)
     end
 
     it "should generate correct concatenate operator" do
 
       statement = @parser.parse "select 3+(sdffsd-5);"
-      statement.to_sql.must_equal "select 3 + (sdffsd - 5);"
+      statement.to_sql.should eq( "select 3 + (sdffsd - 5);")
 
       statement = @parser.parse "select ' ' + 'Jimbo';"
-      statement.to_sql.must_equal "select ' ' || 'Jimbo';"
+      statement.to_sql.should eq( "select ' ' || 'Jimbo';")
 
     end
 
@@ -471,12 +471,12 @@ EOF
   describe "tables" do
     it "must recognize a simple table" do
       statement = @parser.parse "CREATE TABLE [dbo].[xb_vw](\n  [vw_id] [int] IDENTITY(1,1) NOT NULL,\n  [von] [datetime2](0) NULL,\n  [bis] [datetime2](0) NULL,\n  [ort] [nvarchar](15) NULL,\n  [fern] [nvarchar](15) NULL,\n  [mobil] [nvarchar](15) NULL,\n  [ausland] [nvarchar](15) NULL,\n  [swiss] [nvarchar](15) NULL,\n  [austria] [nvarchar](15) NULL,\n  [swiss_mobile] [nvarchar](10) NULL,\n  [austria_mobile] [nvarchar](10) NULL\n) ON [PRIMARY]\nGO\n"
-      statement.wont_be_nil
+      statement.should_not be_nil
     end
 
     it "must recognize indexes" do
       statement = @parser.parse "CREATE TABLE [dbo].[xb_tarife_shops](\n  [shop_id] [int] IDENTITY(1,1) NOT NULL,\n  [prj_id] [int] NULL,\n  [name] [nvarchar](50) NULL,\n  [provision] [float] NULL,\n  [email] [nvarchar](120) NULL,\n  [foreseek] [int] NULL,\n  [SSMA_TimeStamp] [timestamp] NOT NULL,\n  CONSTRAINT [xb_tarife_shops$PrimaryKey] PRIMARY KEY CLUSTERED\n  (\n    [shop_id] ASC\n  )WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY]\n) ON [PRIMARY]\nGO\n"
-      statement.wont_be_nil
+      statement.should_not be_nil
     end
 
     it "must parse all tables" do
@@ -484,8 +484,7 @@ EOF
       file = File.new("spec/sql_parser/tables_full.txt")
       statement = @parser.parse file.read
       puts @parser.report unless statement
-      statement.wont_be_nil
+      statement.should_not be_nil
     end
 
   end
-end

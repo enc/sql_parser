@@ -19,9 +19,8 @@ Gem::Specification.new do |s|
   s.require_paths = ["lib"]
 
   # specify any dependencies here; for example:
-  s.add_development_dependency "minitest"
-  s.add_development_dependency "turn"
-  # s.add_development_dependency "guard"
+  s.add_development_dependency "rspec"
+  s.add_development_dependency "guard"
   s.add_runtime_dependency "treetop"
   s.add_runtime_dependency "beanstalk-client"
   s.add_runtime_dependency "mongo_mapper"

@@ -1,5 +1,5 @@
 # encoding: utf-8
-require 'minitest_helper'
+require 'spec_helper'
 
 describe BaseStatement do
   describe "clean object" do
