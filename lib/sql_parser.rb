@@ -26,6 +26,7 @@ module SqlParser
     end
   end
 
+
   class Parser
     def initialize(name)
       @parser = Kernel.const_get(name).new
