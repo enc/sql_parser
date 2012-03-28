@@ -1,7 +1,6 @@
 require "sql_parser/version"
 require 'treetop'
 require 'beanstalk-client'
-require "sql_parser/pgsql"
 require "mongo_mapper"
 # require "sql_parser/node_extension"
 
@@ -25,6 +24,33 @@ module SqlParser
       false
     end
   end
+
+  class BaseStatement < Treetop::Runtime::SyntaxNode
+    def statement
+      nil
+    end
+
+    def start_table name
+      self.class.tname = name
+    end
+
+    def add_field name, typ
+      if self.class.tname
+        self.class.fields ||= []
+        self.class.fields << [name, typ]
+      end
+    end
+
+    def to_sql
+      if self.class.tname
+        self.class.fields.join
+      else
+        super
+      end
+    end
+
+  end
+
 
 
   class Parser
@@ -86,3 +112,4 @@ module SqlParser
     key :response, String
   end
 end
+require "sql_parser/pgsql"

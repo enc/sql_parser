@@ -1,14 +1,10 @@
-class BaseStatement < Treetop::Runtime::SyntaxNode
-
-end
-
-class Statement < BaseStatement
+class Statement < SqlParser::BaseStatement
   def to_sql
     command.to_sql.strip
   end
 end
 
-class SelectStatement < BaseStatement
+class SelectStatement < SqlParser::BaseStatement
   def to_sql
     elements.collect do |item|
       item.to_sql
@@ -16,13 +12,13 @@ class SelectStatement < BaseStatement
   end
 end
 
-class SpaceNode < BaseStatement
+class SpaceNode < SqlParser::BaseStatement
   def to_sql
     " "
   end
 end
 
-class OperationNode < BaseStatement
+class OperationNode < SqlParser::BaseStatement
   def to_sql
     left.to_sql.strip + ' ' + (is_string? ? op.to_sql(true) : op.to_sql) + ' ' + right.to_sql.strip
   end
@@ -36,7 +32,7 @@ class OperationNode < BaseStatement
   end
 end
 
-class RootNode < BaseStatement
+class RootNode < SqlParser::BaseStatement
   def to_sql
     elements.collect do |item|
       item.to_sql
@@ -44,13 +40,13 @@ class RootNode < BaseStatement
   end
 end
 
-class Topping < BaseStatement
+class Topping < SqlParser::BaseStatement
   def to_sql
     " "
   end
 end
 
-class PlusOperator < BaseStatement
+class PlusOperator < SqlParser::BaseStatement
   def to_sql switch=false
     if switch
       "||"
@@ -60,7 +56,7 @@ class PlusOperator < BaseStatement
   end
 end
 
-class IfStatement < BaseStatement
+class IfStatement < SqlParser::BaseStatement
   def to_sql
     output = "CASE WHEN " + condition.to_sql + " THEN " + t_result.to_sql
     output += " ELSE " + altern.e_result.to_sql unless altern.terminal?
@@ -69,7 +65,7 @@ class IfStatement < BaseStatement
   end
 end
 
-class FunctionNode < BaseStatement
+class FunctionNode < SqlParser::BaseStatement
   def to_sql
     map(fname.to_sql) + rest.to_sql
   end
@@ -86,13 +82,13 @@ class FunctionNode < BaseStatement
     end
   end
 end
-class CreateView < BaseStatement
+class CreateView < SqlParser::BaseStatement
 end
-class NumNode < BaseStatement
+class NumNode < SqlParser::BaseStatement
 
 end
 
-class StringNode < BaseStatement
+class StringNode < SqlParser::BaseStatement
   def to_sql
     string.to_sql
   end
@@ -102,7 +98,7 @@ class StringNode < BaseStatement
   end
 end
 
-class FullNameNode < BaseStatement
+class FullNameNode < SqlParser::BaseStatement
   def to_sql
     output =
     elements.map do |item|
@@ -115,22 +111,22 @@ class FullNameNode < BaseStatement
   end
 end
 
-class Gibberish < BaseStatement
+class Gibberish < SqlParser::BaseStatement
   def to_sql
     ""
   end
 end
 
-class NameNode < BaseStatement
+class NameNode < SqlParser::BaseStatement
   def to_sql
     text_value.gsub(/[\[\]]/,'"')
   end
 end
-class Fieldlist < BaseStatement
+class Fieldlist < SqlParser::BaseStatement
 end
-class Field < BaseStatement
+class Field < SqlParser::BaseStatement
 end
-class Tablename < BaseStatement
+class Tablename < SqlParser::BaseStatement
 end
-class CreateTable < BaseStatement
+class CreateTable < SqlParser::BaseStatement
 end
