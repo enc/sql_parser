@@ -30,23 +30,39 @@ module SqlParser
       nil
     end
 
-    def start_table name
-      self.class.tname = name
+    def start_context name
+      @@context_name = name
+      @@constraint_lines ||= []
+      @@columns_definition ||= []
     end
 
     def add_field name, typ
-      if self.class.tname
-        self.class.fields ||= []
-        self.class.fields << [name, typ]
+      if @@context_name != nil
+        @@columns_definition << [name, typ]
+      end
+    end
+    def add_constraint line
+      if @@context_name != nil
+        @@constraint_lines << line
       end
     end
 
-    def to_sql
-      if self.class.tname
-        self.class.fields.join
+    def to_sql switch=false
+      if @@context_name != nil
+        sql = ""
+        sql << @@columns_definition.join
+        sql << @@constraint_lines.join
+        clear_context
+        return sql
       else
         super
       end
+    end
+
+    def clear_context
+      @@context_name = nil
+      @@columns_definition = nil
+      @@constraint_lines = nil
     end
 
   end
