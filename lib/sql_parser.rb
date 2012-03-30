@@ -26,43 +26,25 @@ module SqlParser
   end
 
   class BaseStatement < Treetop::Runtime::SyntaxNode
-    def statement
-      nil
+
+    def add_inclosure text
+      @@inclosures ||= []
+      @@inclosures << text
     end
 
-    def start_context name
-      @@context_name = name
-      @@constraint_lines ||= []
-      @@columns_definition ||= []
+    def addendum
+      result = @@inclosures.join("\n")
+      @@inclosures = []
+      @@context = nil
+      return result
     end
 
-    def add_field name, typ
-      if @@context_name != nil
-        @@columns_definition << [name, typ]
-      end
-    end
-    def add_constraint line
-      if @@context_name != nil
-        @@constraint_lines << line
-      end
+    def set_context name
+      @@context = name
     end
 
-    def to_sql switch=false
-      if @@context_name != nil
-        sql = ""
-        sql << @@columns_definition.join
-        sql << @@constraint_lines.join
-        clear_context
-        return sql
-      else
-        super
-      end
-    end
-
-    def clear_context
-      @@context_name = nil
-      @@columns_definition = nil
-      @@constraint_lines = nil
+    def context
+      @@context
     end
 
   end

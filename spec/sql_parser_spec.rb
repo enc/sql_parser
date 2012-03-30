@@ -484,8 +484,29 @@ EOF
       skip "Dauert zu lange. Testet alle tables."
       file = File.new("spec/sql_parser/tables_full.txt")
       statement = @parser.parse file.read
-      puts @parser.report unless statement
       statement.should_not be_nil
+    end
+
+    context "table creation" do
+      Given(:parser) { SqlParser::Parser.new("MssqlParser") }
+      When(:statement) {
+        text = <<EOF
+CREATE TABLE [dbo].[adr_services](
+	[id] [int] IDENTITY(1,1) NOT NULL,
+	[adr_id] [int] NULL,
+	[service_id] [int] NULL,
+	[upsize_ts] [timestamp] NULL,
+ CONSTRAINT [aaaaaadr_services_PK] PRIMARY KEY NONCLUSTERED 
+(
+	[id] ASC
+)WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY]
+) ON [PRIMARY]
+GO
+EOF
+        parser.parse text
+      }
+      Then { statement.to_sql.should match('TABLE \"adr_services\"') }
+      Then { statement.to_sql.should match('ALTER TABLE "adr_services" ADD PRIMARY KEY (id);') }
     end
 
   end

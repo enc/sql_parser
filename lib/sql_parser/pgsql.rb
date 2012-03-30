@@ -128,5 +128,15 @@ class Field < SqlParser::BaseStatement
 end
 class Tablename < SqlParser::BaseStatement
 end
+class TableConstraint < SqlParser::BaseStatement
+  def to_sql
+    add_inclosure "ALTER TABLE #{context} ADD PRIMARY KEY (#{id_column.to_sql});"
+    return ""
+  end
+end
 class CreateTable < SqlParser::BaseStatement
+  def to_sql
+    set_context tablename.to_sql
+    super
+  end
 end
