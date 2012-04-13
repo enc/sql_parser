@@ -53,7 +53,7 @@ grammar Mssql
   end
 
   rule constraint
-    'CONSTRAINT' space name space? constraint_type space? '(' space? ( id_column:name space ('ASC' / 'DESC') space? )+ ')WITH' space? '(' (!')' .)* ')' space? 'ON [PRIMARY]' <TableConstraint>
+    'CONSTRAINT' space name space? constraint_type space? '(' space? idcolumn:name space ('ASC' / 'DESC') space? ')WITH' space? '(' (!')' .)* ')' space? 'ON [PRIMARY]' <TableConstraint>
   end
 
   rule constraint_type
@@ -67,7 +67,7 @@ grammar Mssql
   end
 
   rule identity
-    'IDENTITY(' number ',' number ')'
+    'IDENTITY(' number ',' number ')' <Identity>
   end
 
   rule number

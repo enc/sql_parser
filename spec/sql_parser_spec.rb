@@ -481,7 +481,6 @@ EOF
     end
 
     it "must parse all tables", :off => true do
-      skip "Dauert zu lange. Testet alle tables."
       file = File.new("spec/sql_parser/tables_full.txt")
       statement = @parser.parse file.read
       statement.should_not be_nil
@@ -505,8 +504,10 @@ GO
 EOF
         parser.parse text
       }
-      Then { statement.to_sql.should match('TABLE \"adr_services\"') }
-      Then { statement.to_sql.should match('ALTER TABLE "adr_services" ADD PRIMARY KEY (id);') }
+      Then { statement.to_sql.should include('TABLE "adr_services"') }
+      Then { statement.to_sql.should include('ALTER TABLE "adr_services" ADD PRIMARY KEY ("id");') }
+      Then { statement.to_sql.should include('CREATE SEQUENCE adr_services_sq START 1;')
+             statement.to_sql.should match(/^CREATE SEQUENCE/) }
     end
 
   end

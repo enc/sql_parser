@@ -27,12 +27,25 @@ module SqlParser
 
   class BaseStatement < Treetop::Runtime::SyntaxNode
 
+    def add_preps text
+      @@preps ||= []
+      @@preps << text
+    end
+
     def add_inclosure text
       @@inclosures ||= []
       @@inclosures << text
     end
 
+    def prependum
+      @@preps ||= []
+      result = @@preps.join("\n")
+      @@preps = []
+      return result
+    end
+
     def addendum
+      @@inclosures ||= []
       result = @@inclosures.join("\n")
       @@inclosures = []
       @@context = nil

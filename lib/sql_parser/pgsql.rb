@@ -128,15 +128,21 @@ class Field < SqlParser::BaseStatement
 end
 class Tablename < SqlParser::BaseStatement
 end
+class Identity < SqlParser::BaseStatement
+  def to_sql
+    add_preps "CREATE SEQUENCE #{context.gsub('"','')}_sq START 1;"
+    return "DEFAULT nextval('#{context.gsub('"','')}_sq')"
+  end
+end
 class TableConstraint < SqlParser::BaseStatement
   def to_sql
-    add_inclosure "ALTER TABLE #{context} ADD PRIMARY KEY (#{id_column.to_sql});"
+    add_inclosure "ALTER TABLE #{context} ADD PRIMARY KEY (#{idcolumn.to_sql});"
     return ""
   end
 end
 class CreateTable < SqlParser::BaseStatement
   def to_sql
     set_context tablename.to_sql
-    super
+    [prependum,super,addendum].join "\n"
   end
 end
