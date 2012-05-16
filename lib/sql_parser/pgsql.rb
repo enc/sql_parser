@@ -73,7 +73,9 @@ class FunctionNode < SqlParser::BaseStatement
 
   def map name
     mapping = {
-      "fnVAL" => "VAL"
+      "fnVAL" => "VAL",
+      "isnull" => "coalesce",
+      "getdate" => "now"
     }
 
     if mapping.has_key? name
