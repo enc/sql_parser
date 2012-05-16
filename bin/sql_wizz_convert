@@ -1,0 +1,52 @@
+#!/usr/bin/env ruby
+
+STDOUT.sync = true
+
+$:.unshift File.join(File.dirname(__FILE__), *%w[.. lib])
+
+require 'rubygems'
+require 'optparse'
+
+begin
+  # Save ARGV in case someone wants to use it later
+  ORIGINAL_ARGV = ARGV.dup
+
+  options = {}
+
+  opts = OptionParser.new do |opts|
+    opts.banner = <<-EOF
+  Usage:
+    Starting:
+      sql_wizz_watch [-c <channel name>]
+  EOF
+  
+    opts.on("-iFILE", "--input-file FILE", "Input File") do |x|
+      options[:file] = x
+    end
+  end
+  
+  opts.parse!
+  
+  # dispatch
+  if options[:file]
+    require 'sql_parser'
+    parser = SqlParser::Parser.new('MssqlParser')
+    file = File.new(options[:file])
+    result = parser.parse file.read
+    if result
+      puts result
+    else
+      puts parser.report
+    end
+  end
+rescue Exception => e
+  if e.instance_of?(SystemExit)
+    raise
+  else
+    puts 'Uncaught exception'
+    puts e.message
+    puts e.backtrace.join("\n")
+  end
+end
+
+
