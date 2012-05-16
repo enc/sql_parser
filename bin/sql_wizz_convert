@@ -17,7 +17,7 @@ begin
     opts.banner = <<-EOF
   Usage:
     Starting:
-      sql_wizz_watch [-c <channel name>]
+      sql_wizz_watch [-i <input file name>]
   EOF
   
     opts.on("-iFILE", "--input-file FILE", "Input File") do |x|
