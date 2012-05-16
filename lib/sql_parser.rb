@@ -10,13 +10,15 @@ MongoMapper.database = 'sqlwizz'
 module SqlParser
 
   class Treetop::Runtime::SyntaxNode
-    def to_sql switch=false
+    def to_sql joiner=""
+      icon = joiner
       if terminal?
         text_value
       else
         elements.collect do |item|
-          item.to_sql
-        end.join("")
+          icon = item.connector if item.respond_to? :connector
+          item.to_sql joiner
+        end.join(icon)
       end
     end
 
@@ -26,6 +28,31 @@ module SqlParser
   end
 
   class BaseStatement < Treetop::Runtime::SyntaxNode
+
+    def to_sql joiner=""
+      if terminal?
+        text_value
+      else
+        elements.collect do |item|
+          item.to_sql joiner
+        end.join(joiner)
+      end
+    end
+
+    def self.typeal return_element
+      define_method :to_sql do
+        return return_element
+      end
+    end
+
+
+    def self.seperator character
+
+      define_method :connector do
+        return character
+      end
+
+    end
 
     def add_preps text
       @@preps ||= []

@@ -12,6 +12,10 @@ grammar Mssql
     gibberish
   end
 
+  rule go
+    'GO' <GoKack>
+  end
+
   rule gibberish
     ('USE' / 'SET' / 'EXEC' / 'ALTER TABLE' ) (!"GO" (. / '\n'))* "GO" <Gibberish>
   end
@@ -25,11 +29,7 @@ grammar Mssql
   end
 
   rule view
-    space? ('CREATE' / 'create') space ('VIEW' / 'view') space viewname:full_name space ('AS' / 'as') (space / comment)* select:select space* 'GO' space? <CreateView>
-  end
-
-  rule table
-    'CREATE TABLE' space tablename:full_name space? '(' space row_definition+ space? constraint? space? ') ON [PRIMARY]' space 'GO' <CreateTable>
+    space? ('CREATE' / 'create') space ('VIEW' / 'view') space viewname:full_name space ('AS' / 'as') (space / comment)* select:select space* go space? <CreateView>
   end
 
   rule space
@@ -48,26 +48,12 @@ grammar Mssql
     std:(space? ('TOP' / 'top') space '('? [0-9]* ')'? (space? 'PERCENT')?) ties:(space? 'WITH TIES')? space? <Topping>
   end
 
-  rule row_definition
-    name space name ('(' ([0-9,]+ / 'max') ')')? space (identity space)? fieldoptions ','? space
-  end
-
   rule constraint
     'CONSTRAINT' space name space? constraint_type space? '(' space? idcolumn:name space ('ASC' / 'DESC') space? ')WITH' space? '(' (!')' .)* ')' space? 'ON [PRIMARY]' <TableConstraint>
   end
 
   rule constraint_type
     'PRIMARY KEY ' ('CLUSTERED' / 'NONCLUSTERED')
-  end
-
-  rule fieldoptions
-    'NOT NULL'
-    /
-    'NULL'
-  end
-
-  rule identity
-    'IDENTITY(' number ',' number ')' <Identity>
   end
 
   rule number
@@ -91,12 +77,6 @@ grammar Mssql
     table_name (space ('AS' / 'as') space name)? ( space? join space ( space? table_expression space? / full_name ) space? ('on' / 'ON') space join_conditions space? )*
     /
     function
-  end
-
-  rule table_name
-    full_name !'(' <Tablename>
-    /
-    '(' space? (select / table_expression) space? ')' <Tablename>
   end
 
   rule join_conditions
@@ -182,8 +162,17 @@ grammar Mssql
   end
 
   rule type
-    'int' / 'float' / 'smallint' / 'datetime' / ('varchar' / 'nvarchar') ('(' [0-9]+ ')')?
-    / 'bit'
+    'int' <IntegerType>
+    / 'float' 
+    / 'smallint' 
+    / 'tinyint'
+    / 'bigint'
+    / 'money'
+    / 'datetime2' <DateTimeType>
+    / 'datetime' <DateTimeType>
+    / ('varchar' / 'nvarchar' / 'nchar') ('(' ([0-9]+ / 'MAX' / 'max') ')')? <VarcharType>
+    / 'bit' <BoolType>
+    / 'timestamp' <TimeStampType>
   end
 
   rule operator
@@ -234,7 +223,7 @@ grammar Mssql
   end
 
   rule name
-    '[' (!']' .)* ']' <NameNode>
+    '[' (!']' .)* ']' <PNameNode>
     /
     [a-zA-Zäüö$_0-9]+ <NameNode>
   end
@@ -246,9 +235,38 @@ grammar Mssql
   end
 
   rule is_null
-    function space ('is null' / 'IS NULL' / 'Is Null' / 'Is Not Null' / 'IS NOT NULL')
+    function space ('is null' / 'IS NULL' / 'Is Null' / 'Is Not Null' / 'IS NOT NULL' / 'is not null')
     /
     function
+  end
+
+  rule crap
+    'ON [PRIMARY]' <CrapStatement>
+  end
+  # table parsing
+
+  rule table
+    'CREATE TABLE' space tablename:full_name space? '(' space row_definition+ space? constraint? space? ')' space? crap space go <CreateTable>
+  end
+
+  rule table_name
+    full_name !'(' <Tablename>
+    /
+    '(' space? (select / table_expression) space? ')' <Tablename>
+  end
+
+  rule row_definition
+    name space type_expression space fieldoptions comman:','? space <RowDefinition>
+  end
+
+  rule type_expression
+    '[' type ']' options:( space 'IDENTITY(1,1)' / ('(' ([0-9]+ / 'MAX' / 'max') ')') )? <TypeExpression>
+  end
+
+  rule fieldoptions
+    'NOT NULL'
+    /
+    'NULL'
   end
 
 end

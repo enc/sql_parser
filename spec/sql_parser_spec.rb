@@ -505,9 +505,8 @@ EOF
         parser.parse text
       }
       Then { statement.to_sql.should include('TABLE "adr_services"') }
-      Then { statement.to_sql.should include('ALTER TABLE "adr_services" ADD PRIMARY KEY ("id");') }
-      Then { statement.to_sql.should include('CREATE SEQUENCE adr_services_sq START 1;')
-             statement.to_sql.should match(/^CREATE SEQUENCE/) }
+      # Then { statement.to_sql.should include('ALTER TABLE "adr_services" ADD PRIMARY KEY ("id");') }
+      Then { statement.to_sql.should include('serial') }
     end
 
   end
